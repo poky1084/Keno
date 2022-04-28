@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32407.343
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keno", "Keno\Keno.csproj", "{B5BD1444-A8C2-4D28-AA5C-2B41C2A0A094}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B5BD1444-A8C2-4D28-AA5C-2B41C2A0A094}.Debug|x86.ActiveCfg = Debug|x86
+		{B5BD1444-A8C2-4D28-AA5C-2B41C2A0A094}.Debug|x86.Build.0 = Debug|x86
+		{B5BD1444-A8C2-4D28-AA5C-2B41C2A0A094}.Release|x86.ActiveCfg = Release|x86
+		{B5BD1444-A8C2-4D28-AA5C-2B41C2A0A094}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AE325E3C-1A98-4635-98DF-5D712D9B7945}
+	EndGlobalSection
+EndGlobal
