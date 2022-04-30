@@ -74,6 +74,7 @@ namespace Keno
         public kenoBet minesNext { get; set; }
         public kenoBet minesCashout { get; set; }
         public object rotateSeedPair { get; set; }
+        public object createVaultDeposit { get; set; }
     }
     public class kenoBet
     {

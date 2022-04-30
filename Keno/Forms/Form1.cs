@@ -13,12 +13,27 @@ using System.Diagnostics;
 using LiveCharts;
 using LiveCharts.WinForms;
 using LiveCharts.Defaults;
+using FastColoredTextBoxNS;
+using SharpLua;
+using System.Collections;
 
 namespace Keno
 {
     public partial class Form1 : Form
     {
         public List<int> StratergyArray = new List<int>();
+        
+        private FastColoredTextBox richTextBox1;
+        private stratGrid stratSelector;
+        LuaInterface lua = LuaRuntime.GetLua();
+
+        delegate void LogConsole(string text);
+        //delegate void dwithdraw(decimal Amount, string Address);
+        delegate void dtip(string username, decimal amount);
+        delegate void dvault(decimal sentamount);
+        delegate void dStop();
+        delegate void dResetSeed();
+        delegate void dResetStat();
 
         public string StakeSite = "stake.com";
         public string token = "";
@@ -31,7 +46,24 @@ namespace Keno
         public decimal amount = 0;
         public decimal currentBal = 0;
         public decimal currentProfit = 0;
+        public decimal currentWager = 0;
+        public bool isWin = false;
         public int counter = 0;
+        public int wins = 0;
+        public int losses = 0;
+        public int winstreak = 0;
+        public int losestreak = 0;
+        public decimal Lastbet = 0;
+        long beginMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+        List<decimal> highestProfit = new List<decimal> { 0 };
+        List<decimal> lowestProfit = new List<decimal> { 0 };
+        List<decimal> highestBet = new List<decimal> { 0 };
+
+        List<int> highestStreak = new List<int> { 0 };
+        List<int> lowestStreak = new List<int> { 0 };
+
+        public lastbet last = new lastbet();
 
         public string[] curr = { "BTC", "ETH", "LTC", "DOGE", "XRP", "BCH", "TRX", "EOS" };
 
@@ -42,14 +74,37 @@ namespace Keno
         List<double> yList = new List<double>();
         public Form1()
         {
+            stratSelector = new Keno.stratGrid();
+            stratSelector.Location = new System.Drawing.Point(462, 21);
+            stratSelector.Name = "stratSelector";
+            stratSelector.Size = new System.Drawing.Size(398, 398);
+            stratSelector.squareData = new int[] {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            stratSelector.SquareSpacing = 3;
+            stratSelector.TabIndex = 2;
+            stratSelector.Text = "stratGrid1";
+
+            this.Controls.Add(stratSelector);
+
             InitializeComponent();
+
+            groupBox1.BringToFront();
+            listView2.BringToFront();
+            button1.BringToFront();
+            button2.BringToFront();
+            autoPickBtn.BringToFront();
+            clearTable.BringToFront();
+
             Text += " - " + Application.ProductVersion;
+            Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             initForm = this;
             currencySelect.SelectedIndex = 0;
             riskSelect.SelectedIndex = 1;
             siteStake.SelectedIndex = 0;
             this.listView1.ItemChecked += this.listView1_ItemChecked;
-
+            this.CmdBox.KeyDown += this.CmdBox_KeyDown;
+            //this.tabPage5.Click += this.tabPage5_Click;
             xList.Add(0);
             yList.Add(0);
             data.Add(new ObservablePoint
@@ -74,12 +129,159 @@ namespace Keno
                     Step = 5
                 }
             });
-            
+            Func<double, string> formatFunc = (x) => string.Format("{0:0.000000}", x);
+            ch.AxisY.Add(new LiveCharts.Wpf.Axis
+            {
+                LabelFormatter = formatFunc
+            });
 
             //ch.Series[0].ScalesYAt = 0;
             ch.Width = 250;
             panel1.Controls.Add(ch);
+
+
+            RegisterLua();
+
+            richTextBox1 = new FastColoredTextBox();
+            richTextBox1.Dock = DockStyle.Fill;
+            richTextBox1.Language = Language.Lua;
+            richTextBox1.BorderStyle = BorderStyle.FixedSingle;
+            tabPage3.Controls.Add(richTextBox1);
+            richTextBox1.Text = @"nextbet  = 0.00000000 --sets your first bet.
+selected = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10} -- set selected tiles
+risk     = ""low"" -- set risk level
+currency = ""doge""-- set currency
+
+function dobet()
+    if (win) then
+        print(""hit counts: "" .. lastBet.hits) 
+        print(""multiplier: "" .. lastBet.multiplier .. ""x"")
+    end
+end";
         }
+
+        private void RegisterLua()
+        {
+            
+            lua.RegisterFunction("vault", this, new dvault(luaVault).Method);
+            lua.RegisterFunction("tip", this, new dtip(luatip).Method);
+            lua.RegisterFunction("print", this, new LogConsole(luaPrint).Method);
+            lua.RegisterFunction("stop", this, new dStop(luaStop).Method);
+            lua.RegisterFunction("resetseed", this, new dResetSeed(luaResetSeed).Method);
+            lua.RegisterFunction("resetstats", this, new dResetStat(luaResetStat).Method);
+        }
+
+        private void SetLuaVariables(List<int> drawn)
+        {
+            lua["balance"] = currentBal;
+            lua["profit"] = currentProfit;
+            lua["currentstreak"] = (winstreak > 0) ? winstreak : -losestreak;
+            lua["previousbet"] = Lastbet;
+            lua["nextbet"] = Lastbet;
+            lua["bets"] = wins + losses;
+            lua["wins"] = wins;
+            lua["losses"] = losses;
+            lua["currency"] = currencySelected;
+            lua["wagered"] = currentWager;
+            lua["win"] = isWin;
+            lua["risk"] = riskSelected;
+            //lua["selected"] = StratergyArray;
+            lua["drawn"] = drawn;
+            lua["lastBet"] = last;
+        }
+
+        private void GetLuaVariables()
+        {
+            Lastbet = (decimal)(double)lua["nextbet"];
+            amount = Lastbet;
+            currencySelected = (string)lua["currency"];
+            riskSelected = (string)lua["risk"];
+            StratergyArray.Clear();
+            LuaTable tbl = lua.GetTable("selected");
+            System.Collections.Specialized.ListDictionary dict = lua.GetTableDict(tbl);
+            foreach (DictionaryEntry s in dict)
+            {
+                StratergyArray.Add(Convert.ToInt32(s.Value) - 1);
+            }
+        }
+
+        void luaStop()
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                luaPrint("Called stop.");
+                running = false;
+                bSta();
+            });
+            
+        }
+        void luaVault(decimal sentamount)
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                VaultSend(sentamount);
+            });
+        }
+        void luatip(string user, decimal amount)
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                luaPrint("Tipping not available.");
+            });
+        }
+        void luaPrint(string text)
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                consoleLog.AppendText(text + "\r\n");
+            });
+            
+        }
+        void luaResetSeed()
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                ResetSeeds();
+            });
+        }
+
+        void luaResetStat()
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                currentProfit = 0;
+                currentWager = 0;
+                wins = 0;
+                losses = 0;
+                winstreak = 0;
+                losestreak = 0;
+                lowestStreak = new List<int> { 0 };
+                highestStreak = new List<int> { 0 };
+                highestProfit = new List<decimal> { 0 };
+                lowestProfit = new List<decimal> { 0 };
+                highestBet = new List<decimal> { 0 };
+            });
+        }
+
+        private void GetNumbersTables()
+        {
+ 
+        }
+
+        private void LuaSetSelectedVar()
+        {
+            LuaRuntime.Run(@"function listToTable(clrlist)
+                                            local t = {}
+                                            local it = clrlist:GetEnumerator()
+                                            while it:MoveNext() do
+                                              t[#t+1] = it.Current + 1
+                                            end
+                                            return t
+                                        end
+                                        drawn = listToTable(drawn)");
+        }
+
+
 
         private async void button1_Click(object sender, EventArgs e)
         {
@@ -95,6 +297,10 @@ namespace Keno
                     if (stratSelector.squareData[i] == 1)
                         selectedSquares.Add(i);
                 }
+                currencySelect_SelectedIndexChanged(this, new EventArgs());
+                amount = BetCost.Value;
+                riskSelected = riskSelect.Text.ToLower(); ;
+                riskLabel.Text = string.Format("Risk: {0}", riskSelect.Text);
                 StratergyArray = selectedSquares;
                 button1.Enabled = false;
                 stratSelector.selectAllowed = false;
@@ -109,27 +315,52 @@ namespace Keno
         {
             if (running == false)
             {
+                try
+                {
+                    SetLuaVariables(new List<int> { });
+                    LuaSetSelectedVar();
+                    LuaRuntime.SetLua(lua);
+
+
+                    LuaRuntime.Run(richTextBox1.Text);
+
+                    GetNumbersTables();
+
+                }
+                catch (Exception ex)
+                {
+                    luaPrint("Lua ERROR!!");
+                    luaPrint(ex.Message);
+                }
+                GetLuaVariables();
+
+                currencySelect.SelectedIndex = Array.FindIndex(curr, row => row == currencySelected.ToUpper());
+                
+
                 button1.Enabled = false;
                 autoPickBtn.Enabled = false;
                 clearTable.Enabled = false;
+                riskSelect.Enabled = false;
                 if (StratergyArray.Count > 0)
                 {
                     stratSelector.Clear(StratergyArray);
                 }
-                List<int> selectedSquares = new List<int>();
-                for (int i = 0; i < stratSelector.squareData.Length; i++)
-                {
-                    if (stratSelector.squareData[i] == 1)
-                        selectedSquares.Add(i);
-                }
-                StratergyArray = selectedSquares;
+                AppendMultipliers(stratSelector.squareData);
+                //List<int> selectedSquares = new List<int>();
+                //for (int i = 0; i < stratSelector.squareData.Length; i++)
+                //{
+                    //if (stratSelector.squareData[i] == 1)
+                        //selectedSquares.Add(i);
+               // }
+                //StratergyArray = selectedSquares;
                 running = true;
                 button2.Text = "Stop";
-                button2.Enabled = false;
+                //button2.Enabled = false;
                 currencySelect.Enabled = false;
                 //textBox1.Enabled = false;
                 stratSelector.selectAllowed = false;
-                KenoBet(false);
+
+                StartBet(false);
             }
             else
             {
@@ -140,10 +371,11 @@ namespace Keno
 
         async Task StartBet(bool clear)
         {
-            if (running == true)
+            while (running == true)
             {
-
-                button2.Enabled = true;
+                    
+                await KenoBet(false);
+                //button2.Enabled = true;
                 if (clear)
                 {
                     await Task.Delay(40);
@@ -152,7 +384,7 @@ namespace Keno
                         stratSelector.Clear(StratergyArray);
                     }
                 }
-                await StartBet(false);
+                
             }
         }
 
@@ -162,22 +394,23 @@ namespace Keno
             button1.Enabled = true;
             autoPickBtn.Enabled = true;
             clearTable.Enabled = true;
+            riskSelect.Enabled = true;
             stratSelector.selectAllowed = true;
             currencySelect.Enabled = true;
             //textBox1.Enabled = true;
             StratergyArray.Clear();
-            button2.Text = "Start";
+            button2.Text = "Start Lua";
         }
 
         public void Log(Data response)
         {
-            List<int> selected = response.data.kenoBet.state.selectedNumbers.Select(n => n + 1).OrderBy(p => p).ToList();
-            List<int> result = response.data.kenoBet.state.drawnNumbers.Select(n => n + 1).OrderBy(p => p).ToList();
+            List<int> selected = response.data.kenoBet.state.selectedNumbers.Select(n => n + 1).ToList();
+            List<int> result = response.data.kenoBet.state.drawnNumbers.Select(n => n + 1).ToList();
 
 
-            var matchList = result.Intersect(selected).OrderBy(p => p).ToList();
+            var matchList = result.Intersect(selected).ToList();
 
-            //matched.Remove(matched.Length - 1);
+            //var matchList = result.Intersect(selected).OrderBy(p => p).ToList();
             string[] row = { response.data.kenoBet.id, string.Format("({1}x) {0}", string.Join(",", matchList), matchList.Count), string.Join(",", selected), string.Join(",", result), riskSelected, string.Format("{0} {1}", amount.ToString("0.00000000"), currencySelected), response.data.kenoBet.payoutMultiplier.ToString("0.00") + "x", response.data.kenoBet.payout.ToString("0.00000000") };
             var log = new ListViewItem(row);
             //betitem.Font = new Font("Consolas", 10f);
@@ -233,7 +466,8 @@ namespace Keno
                             {
                                 LiveBalLabel.ForeColor = Color.Black;
                                 LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected.ToUpper(), response.data.user.balances[i].available.amount.ToString("0.00000000"));
-                                //currentBal = response.data.user.balances[i].available.amount;
+                                currentBal = response.data.user.balances[i].available.amount;
+                                balanceLabel.Text = currentBal.ToString("0.00000000");
 
                             }
                             //currencySelect.Items.Clear();
@@ -257,7 +491,102 @@ namespace Keno
             }
             catch (Exception ex)
             {
+                //luaPrint(ex.Message);
+            }
+        }
 
+        private async Task ResetSeeds()
+        {
+            try
+            {
+                var mainurl = "https://api." + StakeSite + "/graphql";
+                var request = new RestRequest(Method.POST);
+                var client = new RestClient(mainurl);
+                BetQuery payload = new BetQuery();
+                payload.operationName = "RotateSeedPair";
+                payload.variables = new BetClass()
+                {
+                    seed = RandomString(10)
+                };
+                payload.query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
+
+                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                //request.AddJsonBody(payload);
+                //IRestResponse response = client.Execute(request);
+
+                var restResponse =
+                    await client.ExecuteAsync(request);
+
+                // Will output the HTML contents of the requested page
+                //Debug.WriteLine(restResponse.Content);
+                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+                //System.Diagnostics.Debug.WriteLine(restResponse.Content);
+                if (response.errors != null)
+                {
+                    luaPrint(response.errors[0].message);
+                }
+                else
+                {
+                    if (response.data != null)
+                    {
+                        luaPrint("Seed was reset.");
+
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
+            }
+        }
+        private async Task VaultSend(decimal sentamount)
+        {
+            try
+            {
+                var mainurl = "https://api." + StakeSite + "/graphql";
+                var request = new RestRequest(Method.POST);
+                var client = new RestClient(mainurl);
+                BetQuery payload = new BetQuery();
+                payload.operationName = "CreateVaultDeposit";
+                payload.variables = new BetClass()
+                {
+                    currency = currencySelected.ToLower(),
+                    amount = sentamount
+                };
+                payload.query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
+
+                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                //request.AddJsonBody(payload);
+                //IRestResponse response = client.Execute(request);
+
+                var restResponse =
+                    await client.ExecuteAsync(request);
+
+                // Will output the HTML contents of the requested page
+                //Debug.WriteLine(restResponse.Content);
+                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+                //System.Diagnostics.Debug.WriteLine(restResponse.Content);
+                if (response.errors != null)
+                {
+                    luaPrint(response.errors[0].message);
+                }
+                else
+                {
+                    if (response.data != null)
+                    {
+                        luaPrint(string.Format("Deposited to vault: {0} {1}", sentamount.ToString("0.00000000"), currencySelected));
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
             }
         }
 
@@ -309,7 +638,7 @@ namespace Keno
                                 LiveBalLabel.ForeColor = Color.Black;
                                 LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected.ToUpper(), response.data.user.balances[i].available.amount.ToString("0.00000000"));
                                 currentBal = response.data.user.balances[i].available.amount;
-
+                                balanceLabel.Text = currentBal.ToString("0.00000000");
                             }
                             //currencySelect.Items.Clear();
                             if (true)
@@ -331,110 +660,199 @@ namespace Keno
             }
             catch (Exception ex)
             {
-
+                //luaPrint(ex.Message);
             }
 
         }
         async Task KenoBet(bool showRes)
         {
-
-            if (running)
+            try
             {
-                var mainurl = "https://api." + StakeSite + "/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                BetQuery payload = new BetQuery();
-                payload.variables = new BetClass()
+                if (running)
                 {
-                    currency = currencySelected,
-                    amount = amount,
-                    risk = riskSelected.ToLower(),
-                    numbers = StratergyArray,
-                    identifier = RandomString(21)
-
-                };
-
-                payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
-
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                //label4.Text = restResponse.Content;
-
-                button2.Enabled = true;
-                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
-
-                if (response.errors != null)
-                {
-                    //Log(response.errors[0].message);
-                    ;
-
-                    if (running == true)
+                    var mainurl = "https://api." + StakeSite + "/graphql";
+                    var request = new RestRequest(Method.POST);
+                    var client = new RestClient(mainurl);
+                    BetQuery payload = new BetQuery();
+                    payload.variables = new BetClass()
                     {
-                        //running = false;
-                        //bSta();
-                        //await Task.Delay(2000);
-                        //PrepRequest();
+                        currency = currencySelected,
+                        amount = amount,
+                        risk = riskSelected.ToLower(),
+                        numbers = StratergyArray,
+                        identifier = RandomString(21)
+
+                    };
+
+                    payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
+
+                    request.AddHeader("Content-Type", "application/json");
+                    request.AddHeader("x-access-token", token);
+
+                    request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+
+
+                    var restResponse =
+                        await client.ExecuteAsync(request);
+
+                    //label4.Text = restResponse.Content;
+
+                    button2.Enabled = true;
+                    Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+
+                    if (response.errors != null)
+                    {
+                        //Log();
+                        luaPrint(String.Format("{0}:{1}", response.errors[0].errorType, response.errors[0].message));
+
+                        //if(response.errors[0].errorType == "graphQL")
+
+                        if (running == true)
+                        {
+                            await Task.Delay(2000);
+                            //running = false;
+                            //bSta();
+                            //await Task.Delay(2000);
+                            //PrepRequest();
+                        }
+                        else
+                        {
+                            running = false;
+                            //BSta(true);
+                        }
                     }
                     else
                     {
-                        running = false;
-                        //BSta(true);
-                    }
-                }
-                else
-                {
-                    //clearSquares();
-                    //stratSelector.Reset();
-                    //await Task.Delay(50);
-                    Log(response);
-                    if (amount > 0)
-                    {
+                        //clearSquares();
+                        //stratSelector.Reset();
+                        //await Task.Delay(50);
+                        currentWager += response.data.kenoBet.amount;
+                        if (response.data.kenoBet.payoutMultiplier > 0)
+                        {
+                            losestreak = 0;
+                            winstreak++;
+                            isWin = true;
+                            wins++;
+                        }
+                        else
+                        {
+                            losestreak++;
+                            winstreak = 0;
+                            isWin = false;
+                            losses++;
+                            
+                        }
+
+                        Log(response);
                         CheckBalance(false);
+                        
+                        currentProfit += response.data.kenoBet.payout - response.data.kenoBet.amount;
+                        profitLabel.Text = currentProfit.ToString("0.00000000");
+                        var matchList = response.data.kenoBet.state.drawnNumbers.Intersect(response.data.kenoBet.state.selectedNumbers);
+                        last.hits = matchList.Count();
+                        last.multiplier = response.data.kenoBet.payoutMultiplier;
+                        riskLabel.Text = string.Format("Risk: {0}", riskSelected);
+
+                        highestStreak.Add(winstreak);
+                        highestStreak = new List<int> { highestStreak.Max() };
+                        lowestStreak.Add(-losestreak);
+                        lowestStreak = new List<int> { lowestStreak.Min() };
+
+                        if (currentProfit < 0)
+                        {
+                            lowestProfit.Add(currentProfit);
+                            lowestProfit = new List<decimal> { lowestProfit.Min() };
+                        }
+                        else
+                        {
+                            highestProfit.Add(currentProfit);
+                            highestProfit = new List<decimal> { highestProfit.Max() };
+                        }
+
+                        highestBet.Add(amount);
+                        highestBet = new List<decimal> { highestBet.Max() };
+
+                        SetStatistics();
+
+
+                        counter++;
+                        xList.Add(counter);
+                        yList.Add((double)currentProfit);
+
+
+
+                        data.Add(new ObservablePoint
+                        {
+                            X = xList[xList.Count - 1],
+                            Y = yList[yList.Count - 1]
+                        });
+
+
+                        if (data.Count > 30)
+                        {
+                            data.RemoveAt(0);
+                            xList.RemoveAt(0);
+                            yList.RemoveAt(0);
+
+                        }
+                        if (showRes)
+                        {
+
+                            ShowResult(response.data.kenoBet.state.drawnNumbers, response.data.kenoBet.state.selectedNumbers);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                SetLuaVariables(response.data.kenoBet.state.drawnNumbers);
+                                LuaSetSelectedVar();
+                                LuaRuntime.SetLua(lua);
+
+
+                                LuaRuntime.Run("dobet()");
+
+                            }
+                            catch (Exception ex)
+                            {
+                                luaPrint("Lua ERROR!!");
+                                luaPrint(ex.Message);
+                            }
+                            GetLuaVariables();
+                        }
                     }
-                    currentProfit += response.data.kenoBet.payout - response.data.kenoBet.amount;
-                    profitLabel.Text = currentProfit.ToString("0.00000000");
-
-                    //ch.Series[0].Values.Add(counter);
-                    //data.Add((double)currentProfit);
-                    counter++;
-                    xList.Add(counter);
-                    yList.Add((double)currentProfit);
-
-
-
-                    data.Add(new ObservablePoint
-                    {
-                        X = xList[xList.Count - 1],
-                        Y = yList[yList.Count - 1]
-                    });
-                    
-
-                    if (data.Count > 30)
-                    {
-                        data.RemoveAt(0);
-                        xList.RemoveAt(0);
-                        yList.RemoveAt(0);
-
-                    }
-                    if (showRes)
-                    {
-                        ShowResult(response.data.kenoBet.state.drawnNumbers, response.data.kenoBet.state.selectedNumbers);
-                    }
-                }
-                if (showRes == false)
-                {
-                    await KenoBet(false);
                 }
             }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
+            }
+        }
+
+        private void SetStatistics()
+        {
+            balanceLabel.Text = currentBal.ToString("0.00000000");
+            profitLabel.Text = currentProfit.ToString("0.00000000");
+            wagerLabel.Text = currentWager.ToString("0.00000000");
+            wincountLabel.Text = wins.ToString();
+            losecountLabel.Text = losses.ToString();
+            totalbetsLabel.Text = (wins + losses).ToString();
+            currentStreakLabel.Text = (winstreak > 0) ? winstreak.ToString() : (-losestreak).ToString() ;
+            lowestProfitLabel.Text = lowestProfit.Min().ToString("0.00000000");
+            highestProfitLabel.Text = highestProfit.Max().ToString("0.00000000");
+            highestBetLabel.Text = highestBet.Max().ToString("0.00000000");
+            highestStreakLabel.Text = highestStreak.Max().ToString();
+            lowestStreakLabel.Text = lowestStreak.Min().ToString();
 
         }
+
+        private void CmdBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                CmdBtn_Click(this, new EventArgs());
+            }
+        }
+
         private void listView1_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
             //
@@ -470,7 +888,7 @@ namespace Keno
             if (running == false)
             {
                 button1.Enabled = false;
-                button2.Enabled = false;
+                //button2.Enabled = false;
                 stratSelector.selectAllowed = true;
                 StratergyArray.Clear();
                 listView2.Clear();
@@ -539,7 +957,7 @@ namespace Keno
             else
             {
                 button1.Enabled = false;
-                button2.Enabled = false;
+                //button2.Enabled = false;
                 listView2.Clear();
             }
 
@@ -550,7 +968,7 @@ namespace Keno
             if (running == false)
             {
                 button1.Enabled = false;
-                button2.Enabled = false;
+                //button2.Enabled = false;
                 stratSelector.selectAllowed = true;
                 StratergyArray = new List<int>();
 
@@ -597,18 +1015,19 @@ namespace Keno
         private async void currencySelect_SelectedIndexChanged(object sender, EventArgs e)
         {
             currencySelected = curr[currencySelect.SelectedIndex].ToLower();
+            
             string[] current = currencySelect.Text.Split(' ');
             if (current.Length > 1)
             {
                 LiveBalLabel.Text = String.Format("{0} | {1}", current[0], current[1]);
+                balanceLabel.Text = current[1];
             }
 
         }
 
         private void BetCost_ValueChanged(object sender, EventArgs e)
         {
-            BaseBet = BetCost.Value;
-            amount = BaseBet;
+            //amount = BetCost.Value;
         }
 
         private async void textBox1_TextChanged(object sender, EventArgs e)
@@ -639,7 +1058,55 @@ namespace Keno
 
         private void Form1_Load(object sender, EventArgs e)
         {
+           
+        }
 
+        private void CmdBtn_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (CmdBox.Text.Length > 0)
+                {
+                    LuaRuntime.Run(CmdBox.Text);
+                    //CmdBox.Text = String.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                //CmdBox.Text = String.Empty;
+                luaPrint("Lua ERROR!!");
+                luaPrint(ex.Message);
+            }
+        }
+
+        private void consoleLog_TextChanged_1(object sender, EventArgs e)
+        {
+            if (consoleLog.Lines.Length > 1000)
+            {
+                List<string> lines = consoleLog.Lines.ToList();
+                lines.RemoveAt(0);
+                consoleLog.Lines = lines.ToArray();
+            }
+
+            consoleLog.SelectionStart = consoleLog.Text.Length;
+            consoleLog.ScrollToCaret();
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+
+            currentProfit = 0;
+            currentWager = 0;
+            wins = 0;
+            losses = 0;
+            winstreak = 0;
+            losestreak = 0;
+            lowestStreak = new List<int> { 0 };
+            highestStreak = new List<int> { 0 };
+            highestProfit = new List<decimal> { 0 };
+            lowestProfit = new List<decimal> { 0 };
+            highestBet = new List<decimal> { 0 };
+            SetStatistics();
         }
     }
 
@@ -891,5 +1358,12 @@ namespace Keno
             new double[] { 0, 0, 0, 0, 3.5, 8, 13, 63, 500, 800, 1000 }
         };
     }
+
+    public class lastbet
+    {
+        public int hits { get; set; }
+        public double multiplier { get; set; }
+    }
+    
 
 }
