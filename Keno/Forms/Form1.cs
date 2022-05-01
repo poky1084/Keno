@@ -54,7 +54,7 @@ namespace Keno
         public int winstreak = 0;
         public int losestreak = 0;
         public decimal Lastbet = 0;
-        long beginMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+        long beginMs = 0;
 
         List<decimal> highestProfit = new List<decimal> { 0 };
         List<decimal> lowestProfit = new List<decimal> { 0 };
@@ -315,6 +315,8 @@ end";
         {
             if (running == false)
             {
+
+                
                 try
                 {
                     SetLuaVariables(new List<int> { });
@@ -373,9 +375,12 @@ end";
         {
             while (running == true)
             {
-                    
+                if (beginMs == 0)
+                {
+                    beginMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                }
                 await KenoBet(false);
-                //button2.Enabled = true;
+                TimerFunc(beginMs);
                 if (clear)
                 {
                     await Task.Delay(40);
@@ -386,6 +391,16 @@ end";
                 }
                 
             }
+        }
+
+        public void TimerFunc(long begin)
+        {
+            decimal diff = (decimal)((DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) - begin);
+            decimal seconds = Math.Floor((diff / 1000) % 60);
+            decimal minutes = Math.Floor((diff / (1000 * 60)) % 60);
+            decimal hours = Math.Floor((diff / (1000 * 60 * 60)));
+
+            elapsedTimeLabel.Text = String.Format("{0} : {1} : {2}", hours, minutes, seconds);
         }
 
         public void bSta()
@@ -1106,7 +1121,19 @@ end";
             highestProfit = new List<decimal> { 0 };
             lowestProfit = new List<decimal> { 0 };
             highestBet = new List<decimal> { 0 };
+            beginMs = 0;
+            elapsedTimeLabel.Text = "0 : 0 : 0";
             SetStatistics();
+        }
+
+        private void ResetChartClicked_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            counter = 0;
+            yList.Clear();
+            xList.Clear();
+            xList.Add(0);
+            yList.Add(0);
+            data.Clear();
         }
     }
 

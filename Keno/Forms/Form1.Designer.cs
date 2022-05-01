@@ -97,6 +97,7 @@
             this.autoPickBtn = new System.Windows.Forms.Button();
             this.LiveBalLabel = new System.Windows.Forms.TextBox();
             this.riskLabel = new System.Windows.Forms.Label();
+            this.ResetChartClicked = new System.Windows.Forms.LinkLabel();
             this.groupBox1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.tabControl1.SuspendLayout();
@@ -266,6 +267,7 @@
             // 
             // groupBox4
             // 
+            this.groupBox4.Controls.Add(this.ResetChartClicked);
             this.groupBox4.Controls.Add(this.currentStreakLabel);
             this.groupBox4.Controls.Add(this.label22);
             this.groupBox4.Controls.Add(this.lowestStreakLabel);
@@ -424,7 +426,7 @@
             // linkLabel1
             // 
             this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(8, 162);
+            this.linkLabel1.Location = new System.Drawing.Point(8, 166);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(62, 13);
             this.linkLabel1.TabIndex = 25;
@@ -436,11 +438,11 @@
             // 
             this.elapsedTimeLabel.AutoSize = true;
             this.elapsedTimeLabel.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
-            this.elapsedTimeLabel.Location = new System.Drawing.Point(102, 141);
+            this.elapsedTimeLabel.Location = new System.Drawing.Point(113, 141);
             this.elapsedTimeLabel.Name = "elapsedTimeLabel";
-            this.elapsedTimeLabel.Size = new System.Drawing.Size(72, 17);
+            this.elapsedTimeLabel.Size = new System.Drawing.Size(51, 17);
             this.elapsedTimeLabel.TabIndex = 24;
-            this.elapsedTimeLabel.Text = "00 : 00 : 00";
+            this.elapsedTimeLabel.Text = "0 : 0 : 0";
             // 
             // label14
             // 
@@ -876,6 +878,17 @@
             this.riskLabel.TabIndex = 10;
             this.riskLabel.Text = "Risk:";
             // 
+            // ResetChartClicked
+            // 
+            this.ResetChartClicked.AutoSize = true;
+            this.ResetChartClicked.Location = new System.Drawing.Point(122, 166);
+            this.ResetChartClicked.Name = "ResetChartClicked";
+            this.ResetChartClicked.Size = new System.Drawing.Size(63, 13);
+            this.ResetChartClicked.TabIndex = 38;
+            this.ResetChartClicked.TabStop = true;
+            this.ResetChartClicked.Text = "Reset Chart";
+            this.ResetChartClicked.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.ResetChartClicked_LinkClicked);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -987,6 +1000,7 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label wagerLabel;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.LinkLabel ResetChartClicked;
     }
 }
 
