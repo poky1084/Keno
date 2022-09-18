@@ -16,13 +16,20 @@ using LiveCharts.Defaults;
 using FastColoredTextBoxNS;
 using SharpLua;
 using System.Collections;
+using System.Net;
 
 namespace Keno
 {
     public partial class Form1 : Form
     {
+
+
+        public CookieContainer cc;
+        RestClient SharedRestClient;
+
+
         public List<int> StratergyArray = new List<int>();
-        
+
         private FastColoredTextBox richTextBox1;
         private stratGrid stratSelector;
         LuaInterface lua = LuaRuntime.GetLua();
@@ -162,7 +169,7 @@ end";
 
         private void RegisterLua()
         {
-            
+
             lua.RegisterFunction("vault", this, new dvault(luaVault).Method);
             lua.RegisterFunction("tip", this, new dtip(luatip).Method);
             lua.RegisterFunction("print", this, new LogConsole(luaPrint).Method);
@@ -213,7 +220,7 @@ end";
                 running = false;
                 bSta();
             });
-            
+
         }
         void luaVault(decimal sentamount)
         {
@@ -235,7 +242,7 @@ end";
             {
                 consoleLog.AppendText(text + "\r\n");
             });
-            
+
         }
         void luaResetSeed()
         {
@@ -265,7 +272,7 @@ end";
 
         private void GetNumbersTables()
         {
- 
+
         }
 
         private void LuaSetSelectedVar()
@@ -316,7 +323,7 @@ end";
             if (running == false)
             {
                 await CheckBalance(false);
-                
+
                 try
                 {
                     SetLuaVariables(new List<int> { });
@@ -337,7 +344,7 @@ end";
                 GetLuaVariables();
 
                 currencySelect.SelectedIndex = Array.FindIndex(curr, row => row == currencySelected.ToUpper());
-                
+
 
                 button1.Enabled = false;
                 autoPickBtn.Enabled = false;
@@ -351,9 +358,9 @@ end";
                 //List<int> selectedSquares = new List<int>();
                 //for (int i = 0; i < stratSelector.squareData.Length; i++)
                 //{
-                    //if (stratSelector.squareData[i] == 1)
-                        //selectedSquares.Add(i);
-               // }
+                //if (stratSelector.squareData[i] == 1)
+                //selectedSquares.Add(i);
+                // }
                 //StratergyArray = selectedSquares;
                 running = true;
                 button2.Text = "Stop";
@@ -389,7 +396,7 @@ end";
                         stratSelector.Clear(StratergyArray);
                     }
                 }
-                
+
             }
         }
 
@@ -438,26 +445,61 @@ end";
 
         }
 
+        private void CreateOrUseDefaultRestClient(bool dispose = false)
+        {
+            if (dispose == true)
+            {
+                SharedRestClient = null;
+                cc = null;
+            }
+
+            if (SharedRestClient != null)
+            {
+                return;
+            }
+
+            var mainurl = "https://api." + StakeSite + "/graphql";
+
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+            this.cc = new CookieContainer();
+
+            SharedRestClient = new RestClient();
+            SharedRestClient.BaseUrl = new Uri(mainurl);
+            SharedRestClient.CookieContainer = this.cc;
+            SharedRestClient.UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36";
+        }
+
+        private RestRequest CreateDefaultRestRequest(string apiKey)
+        {
+            RestRequest restRequest = new RestRequest(Method.POST);
+            restRequest.AddHeader("authorization", string.Format("Bearer {0}", apiKey));
+            restRequest.AddHeader("x-access-token", apiKey);
+            //restRequest.AddHeader("X-Requested-With", "XMLHttpRequest");
+            restRequest.AddHeader("Content-type", "application/json");
+            return restRequest;
+        }
+
         private async Task Authorize()
         {
             try
             {
-                var mainurl = "https://api." + StakeSite + "/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                BetQuery payload = new BetQuery();
-                payload.operationName = "initialUserRequest";
-                payload.variables = new BetClass() { };
-                payload.query = "query initialUserRequest {\n  user {\n    ...UserAuth\n    __typename\n  }\n}\n\nfragment UserAuth on User {\n  id\n  name\n  email\n  hasPhoneNumberVerified\n  hasEmailVerified\n  hasPassword\n  intercomHash\n  createdAt\n  hasTfaEnabled\n  mixpanelId\n  hasOauth\n  isKycBasicRequired\n  isKycExtendedRequired\n  isKycFullRequired\n  kycBasic {\n    id\n    status\n    __typename\n  }\n  kycExtended {\n    id\n    status\n    __typename\n  }\n  kycFull {\n    id\n    status\n    __typename\n  }\n  flags {\n    flag\n    __typename\n  }\n  roles {\n    name\n    __typename\n  }\n  balances {\n    ...UserBalanceFragment\n    __typename\n  }\n  activeClientSeed {\n    id\n    seed\n    __typename\n  }\n  previousServerSeed {\n    id\n    seed\n    __typename\n  }\n  activeServerSeed {\n    id\n    seedHash\n    nextSeedHash\n    nonce\n    blocked\n    __typename\n  }\n  __typename\n}\n\nfragment UserBalanceFragment on UserBalance {\n  available {\n    amount\n    currency\n    __typename\n  }\n  vault {\n    amount\n    currency\n    __typename\n  }\n  __typename\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
 
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
+                CreateOrUseDefaultRestClient(true);
 
-                var restResponse =
-                    await client.ExecuteAsync(request);
+                BetQuery payload = new BetQuery
+                {
+                    operationName = "initialUserRequest",
+                    variables = new BetClass() { },
+                    query = "query initialUserRequest {\n  user {\n    ...UserAuth\n    __typename\n  }\n}\n\nfragment UserAuth on User {\n  id\n  name\n  email\n  hasPhoneNumberVerified\n  hasEmailVerified\n  hasPassword\n  intercomHash\n  createdAt\n  hasTfaEnabled\n  mixpanelId\n  hasOauth\n  isKycBasicRequired\n  isKycExtendedRequired\n  isKycFullRequired\n  kycBasic {\n    id\n    status\n    __typename\n  }\n  kycExtended {\n    id\n    status\n    __typename\n  }\n  kycFull {\n    id\n    status\n    __typename\n  }\n  flags {\n    flag\n    __typename\n  }\n  roles {\n    name\n    __typename\n  }\n  balances {\n    ...UserBalanceFragment\n    __typename\n  }\n  activeClientSeed {\n    id\n    seed\n    __typename\n  }\n  previousServerSeed {\n    id\n    seed\n    __typename\n  }\n  activeServerSeed {\n    id\n    seedHash\n    nextSeedHash\n    nonce\n    blocked\n    __typename\n  }\n  __typename\n}\n\nfragment UserBalanceFragment on UserBalance {\n  available {\n    amount\n    currency\n    __typename\n  }\n  vault {\n    amount\n    currency\n    __typename\n  }\n  __typename\n}\n"
+                };
+
+                var request = CreateDefaultRestRequest(token);
+
+                request.AddJsonBody(payload);
+
+                var restResponse = await SharedRestClient.ExecuteAsync(request);
+
 
                 // Will output the HTML contents of the requested page
                 //Debug.WriteLine(restResponse.Content);
@@ -514,25 +556,24 @@ end";
         {
             try
             {
-                var mainurl = "https://api." + StakeSite + "/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                BetQuery payload = new BetQuery();
-                payload.operationName = "RotateSeedPair";
-                payload.variables = new BetClass()
+
+                CreateOrUseDefaultRestClient();
+
+                BetQuery payload = new BetQuery
                 {
-                    seed = RandomString(10)
+                    operationName = "RotateSeedPair",
+                    variables = new BetClass()
+                    {
+                        seed = RandomString(10)
+                    },
+                    query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
                 };
-                payload.query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
 
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
+                var request = CreateDefaultRestRequest(token);
 
-                var restResponse =
-                    await client.ExecuteAsync(request);
+                request.AddJsonBody(payload);
+
+                var restResponse = await SharedRestClient.ExecuteAsync(request);
 
                 // Will output the HTML contents of the requested page
                 //Debug.WriteLine(restResponse.Content);
@@ -561,26 +602,26 @@ end";
         {
             try
             {
-                var mainurl = "https://api." + StakeSite + "/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                BetQuery payload = new BetQuery();
-                payload.operationName = "CreateVaultDeposit";
-                payload.variables = new BetClass()
+
+                CreateOrUseDefaultRestClient();
+
+                BetQuery payload = new BetQuery
                 {
-                    currency = currencySelected.ToLower(),
-                    amount = sentamount
+                    operationName = "CreateVaultDeposit",
+                    variables = new BetClass()
+                    {
+                        currency = currencySelected.ToLower(),
+                        amount = sentamount
+                    },
+                    query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
                 };
-                payload.query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
 
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
+                var request = CreateDefaultRestRequest(token);
 
-                var restResponse =
-                    await client.ExecuteAsync(request);
+                request.AddJsonBody(payload);
+
+                var restResponse = await SharedRestClient.ExecuteAsync(request);
+
 
                 // Will output the HTML contents of the requested page
                 //Debug.WriteLine(restResponse.Content);
@@ -609,22 +650,20 @@ end";
         {
             try
             {
-                var mainurl = "https://api." + StakeSite + "/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                BetQuery payload = new BetQuery();
-                payload.operationName = "UserBalances";
-                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
 
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
+                CreateOrUseDefaultRestClient();
 
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                BetQuery payload = new BetQuery
+                {
+                    operationName = "UserBalances",
+                    query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                };
 
+                var request = CreateDefaultRestRequest(token);
 
+                request.AddJsonBody(payload);
 
-                var restResponse =
-                    await client.ExecuteAsync(request);
+                var restResponse = await SharedRestClient.ExecuteAsync(request);
 
 
                 //Debug.WriteLine(restResponse.Content);
@@ -685,30 +724,29 @@ end";
             {
                 if (running)
                 {
-                    var mainurl = "https://api." + StakeSite + "/graphql";
-                    var request = new RestRequest(Method.POST);
-                    var client = new RestClient(mainurl);
-                    BetQuery payload = new BetQuery();
-                    payload.variables = new BetClass()
-                    {
-                        currency = currencySelected,
-                        amount = amount,
-                        risk = riskSelected.ToLower(),
-                        numbers = StratergyArray,
-                        identifier = RandomString(21)
 
+                    CreateOrUseDefaultRestClient();
+
+                    BetQuery payload = new BetQuery
+                    {
+                        variables = new BetClass()
+                        {
+                            currency = currencySelected,
+                            amount = amount,
+                            risk = riskSelected.ToLower(),
+                            numbers = StratergyArray,
+                            identifier = RandomString(21)
+
+                        },
+                        query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n"
                     };
 
-                    payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
+                    var request = CreateDefaultRestRequest(token);
 
-                    request.AddHeader("Content-Type", "application/json");
-                    request.AddHeader("x-access-token", token);
-
-                    request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                    request.AddJsonBody(payload);
 
 
-                    var restResponse =
-                        await client.ExecuteAsync(request);
+                    var restResponse = await SharedRestClient.ExecuteAsync(request);
 
                     //label4.Text = restResponse.Content;
 
@@ -755,12 +793,12 @@ end";
                             winstreak = 0;
                             isWin = false;
                             losses++;
-                            
+
                         }
 
                         Log(response);
                         CheckBalance(false);
-                        
+
                         currentProfit += response.data.kenoBet.payout - response.data.kenoBet.amount;
                         profitLabel.Text = currentProfit.ToString("0.00000000");
                         var matchList = response.data.kenoBet.state.drawnNumbers.Intersect(response.data.kenoBet.state.selectedNumbers);
@@ -851,7 +889,7 @@ end";
             wincountLabel.Text = wins.ToString();
             losecountLabel.Text = losses.ToString();
             totalbetsLabel.Text = (wins + losses).ToString();
-            currentStreakLabel.Text = (winstreak > 0) ? winstreak.ToString() : (-losestreak).ToString() ;
+            currentStreakLabel.Text = (winstreak > 0) ? winstreak.ToString() : (-losestreak).ToString();
             lowestProfitLabel.Text = lowestProfit.Min().ToString("0.00000000");
             highestProfitLabel.Text = highestProfit.Max().ToString("0.00000000");
             highestBetLabel.Text = highestBet.Max().ToString("0.00000000");
@@ -1030,7 +1068,7 @@ end";
         private async void currencySelect_SelectedIndexChanged(object sender, EventArgs e)
         {
             currencySelected = curr[currencySelect.SelectedIndex].ToLower();
-            
+
             string[] current = currencySelect.Text.Split(' ');
             if (current.Length > 1)
             {
@@ -1069,11 +1107,13 @@ end";
         private void siteStake_SelectedIndexChanged(object sender, EventArgs e)
         {
             StakeSite = siteStake.Text.ToLower();
+            textBox1_TextChanged(null,null);
+
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-           
+
         }
 
         private void CmdBtn_Click(object sender, EventArgs e)
@@ -1391,6 +1431,6 @@ end";
         public int hits { get; set; }
         public double multiplier { get; set; }
     }
-    
+
 
 }
