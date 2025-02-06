@@ -22,14 +22,13 @@ namespace Keno
 {
     public partial class Form1 : Form
     {
-
-
-        public CookieContainer cc;
-        RestClient SharedRestClient;
-
+        CookieContainer cc = new CookieContainer();
+        private string UserAgent = "";
+        private string ClearanceCookie = "";
 
         public List<int> StratergyArray = new List<int>();
 
+        
         private FastColoredTextBox richTextBox1;
         private stratGrid stratSelector;
         LuaInterface lua = LuaRuntime.GetLua();
@@ -63,6 +62,8 @@ namespace Keno
         public decimal Lastbet = 0;
         long beginMs = 0;
 
+        
+
         List<decimal> highestProfit = new List<decimal> { 0 };
         List<decimal> lowestProfit = new List<decimal> { 0 };
         List<decimal> highestBet = new List<decimal> { 0 };
@@ -72,7 +73,34 @@ namespace Keno
 
         public lastbet last = new lastbet();
 
-        public string[] curr = { "BTC", "ETH", "LTC", "DOGE", "XRP", "BCH", "TRX", "EOS" };
+        public string[] curr = {
+            "BTC",
+            "ETH",
+            "LTC",
+            "DOGE",
+            "BCH",
+            "XRP",
+            "TRX",
+            "EOS",
+            "BNB",
+            "USDT",
+            "APE",
+            "BUSD",
+            "CRO",
+            "DAI",
+            "LINK",
+            "SAND",
+            "SHIB",
+            "UNI",
+            "USDC",
+            "VND",
+            "TRY",
+            "TRUMP",
+            "SWEEPS",
+            "POL",
+            "BRL"
+
+       };
 
         CartesianChart ch = new CartesianChart();
         ChartValues<ObservablePoint> data = new ChartValues<ObservablePoint>();
@@ -82,7 +110,7 @@ namespace Keno
         public Form1()
         {
             stratSelector = new Keno.stratGrid();
-            stratSelector.Location = new System.Drawing.Point(462, 21);
+            stratSelector.Location = new System.Drawing.Point(692, 41);
             stratSelector.Name = "stratSelector";
             stratSelector.Size = new System.Drawing.Size(398, 398);
             stratSelector.squareData = new int[] {
@@ -104,11 +132,12 @@ namespace Keno
 
             Text += " - " + Application.ProductVersion;
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
 
             initForm = this;
-            currencySelect.SelectedIndex = 0;
+            //currencySelect.SelectedIndex = 0;
             riskSelect.SelectedIndex = 1;
-            siteStake.SelectedIndex = 0;
+            //siteStake.SelectedIndex = 0;
             this.listView1.ItemChecked += this.listView1_ItemChecked;
             this.CmdBox.KeyDown += this.CmdBox_KeyDown;
             //this.tabPage5.Click += this.tabPage5_Click;
@@ -146,7 +175,7 @@ namespace Keno
             ch.Width = 250;
             panel1.Controls.Add(ch);
 
-
+            LoadSettings();
             RegisterLua();
 
             richTextBox1 = new FastColoredTextBox();
@@ -154,22 +183,19 @@ namespace Keno
             richTextBox1.Language = Language.Lua;
             richTextBox1.BorderStyle = BorderStyle.FixedSingle;
             tabPage3.Controls.Add(richTextBox1);
-            richTextBox1.Text = @"nextbet  = 0.00000000 --sets your first bet.
-selected = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10} -- set selected tiles
-risk     = ""low"" -- set risk level
-currency = ""doge""-- set currency
 
-function dobet()
-    if (win) then
-        print(""hit counts: "" .. lastBet.hits) 
-        print(""multiplier: "" .. lastBet.multiplier .. ""x"")
-    end
-end";
+            richTextBox1.TextChanged += this.richTextBox1_TextChanged;
+            richTextBox1.Text = Properties.Settings.Default.textCode;
         }
-
-        private void RegisterLua()
+        private void Application_ApplicationExit(object sender, EventArgs e)
         {
 
+            Properties.Settings.Default.Save();
+
+        }
+        private void RegisterLua()
+        {
+            
             lua.RegisterFunction("vault", this, new dvault(luaVault).Method);
             lua.RegisterFunction("tip", this, new dtip(luatip).Method);
             lua.RegisterFunction("print", this, new LogConsole(luaPrint).Method);
@@ -177,7 +203,14 @@ end";
             lua.RegisterFunction("resetseed", this, new dResetSeed(luaResetSeed).Method);
             lua.RegisterFunction("resetstats", this, new dResetStat(luaResetStat).Method);
         }
+        private void LoadSettings()
+        {
+            textBox1.Text = Properties.Settings.Default.token;
+            textBox3.Text = Properties.Settings.Default.agent;
+            textBox2.Text = Properties.Settings.Default.cookie;
+            textBox4.Text = Properties.Settings.Default.site;
 
+        }
         private void SetLuaVariables(List<int> drawn)
         {
             lua["balance"] = currentBal;
@@ -220,7 +253,7 @@ end";
                 running = false;
                 bSta();
             });
-
+            
         }
         void luaVault(decimal sentamount)
         {
@@ -242,7 +275,7 @@ end";
             {
                 consoleLog.AppendText(text + "\r\n");
             });
-
+            
         }
         void luaResetSeed()
         {
@@ -272,7 +305,7 @@ end";
 
         private void GetNumbersTables()
         {
-
+ 
         }
 
         private void LuaSetSelectedVar()
@@ -323,7 +356,7 @@ end";
             if (running == false)
             {
                 await CheckBalance(false);
-
+                
                 try
                 {
                     SetLuaVariables(new List<int> { });
@@ -343,8 +376,8 @@ end";
                 }
                 GetLuaVariables();
 
-                currencySelect.SelectedIndex = Array.FindIndex(curr, row => row == currencySelected.ToUpper());
-
+                //currencySelect.SelectedIndex = Array.FindIndex(curr, row => row == currencySelected.ToUpper());
+                
 
                 button1.Enabled = false;
                 autoPickBtn.Enabled = false;
@@ -358,9 +391,9 @@ end";
                 //List<int> selectedSquares = new List<int>();
                 //for (int i = 0; i < stratSelector.squareData.Length; i++)
                 //{
-                //if (stratSelector.squareData[i] == 1)
-                //selectedSquares.Add(i);
-                // }
+                    //if (stratSelector.squareData[i] == 1)
+                        //selectedSquares.Add(i);
+               // }
                 //StratergyArray = selectedSquares;
                 running = true;
                 button2.Text = "Stop";
@@ -396,7 +429,7 @@ end";
                         stratSelector.Clear(StratergyArray);
                     }
                 }
-
+                
             }
         }
 
@@ -445,61 +478,28 @@ end";
 
         }
 
-        private void CreateOrUseDefaultRestClient(bool dispose = false)
-        {
-            if (dispose == true)
-            {
-                SharedRestClient = null;
-                cc = null;
-            }
-
-            if (SharedRestClient != null)
-            {
-                return;
-            }
-
-            var mainurl = "https://api." + StakeSite + "/graphql";
-
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-            this.cc = new CookieContainer();
-
-            SharedRestClient = new RestClient();
-            SharedRestClient.BaseUrl = new Uri(mainurl);
-            SharedRestClient.CookieContainer = this.cc;
-            SharedRestClient.UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36";
-        }
-
-        private RestRequest CreateDefaultRestRequest(string apiKey)
-        {
-            RestRequest restRequest = new RestRequest(Method.POST);
-            restRequest.AddHeader("authorization", string.Format("Bearer {0}", apiKey));
-            restRequest.AddHeader("x-access-token", apiKey);
-            //restRequest.AddHeader("X-Requested-With", "XMLHttpRequest");
-            restRequest.AddHeader("Content-type", "application/json");
-            return restRequest;
-        }
-
         private async Task Authorize()
         {
             try
             {
+                var mainurl = "https://" + StakeSite + "/_api/graphql";
+                var request = new RestRequest(Method.POST);
+                var client = new RestClient(mainurl);
+                client.CookieContainer = cc;
+                client.UserAgent = UserAgent;
+                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                BetQuery payload = new BetQuery();
+                payload.operationName = "UserBalances";
+                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
 
-                CreateOrUseDefaultRestClient(true);
+                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                //request.AddJsonBody(payload);
+                //IRestResponse response = client.Execute(request);
 
-                BetQuery payload = new BetQuery
-                {
-                    operationName = "initialUserRequest",
-                    variables = new BetClass() { },
-                    query = "query initialUserRequest {\n  user {\n    ...UserAuth\n    __typename\n  }\n}\n\nfragment UserAuth on User {\n  id\n  name\n  email\n  hasPhoneNumberVerified\n  hasEmailVerified\n  hasPassword\n  intercomHash\n  createdAt\n  hasTfaEnabled\n  mixpanelId\n  hasOauth\n  isKycBasicRequired\n  isKycExtendedRequired\n  isKycFullRequired\n  kycBasic {\n    id\n    status\n    __typename\n  }\n  kycExtended {\n    id\n    status\n    __typename\n  }\n  kycFull {\n    id\n    status\n    __typename\n  }\n  flags {\n    flag\n    __typename\n  }\n  roles {\n    name\n    __typename\n  }\n  balances {\n    ...UserBalanceFragment\n    __typename\n  }\n  activeClientSeed {\n    id\n    seed\n    __typename\n  }\n  previousServerSeed {\n    id\n    seed\n    __typename\n  }\n  activeServerSeed {\n    id\n    seedHash\n    nextSeedHash\n    nonce\n    blocked\n    __typename\n  }\n  __typename\n}\n\nfragment UserBalanceFragment on UserBalance {\n  available {\n    amount\n    currency\n    __typename\n  }\n  vault {\n    amount\n    currency\n    __typename\n  }\n  __typename\n}\n"
-                };
-
-                var request = CreateDefaultRestRequest(token);
-
-                request.AddJsonBody(payload);
-
-                var restResponse = await SharedRestClient.ExecuteAsync(request);
-
+                var restResponse =
+                    await client.ExecuteAsync(request);
 
                 // Will output the HTML contents of the requested page
                 //Debug.WriteLine(restResponse.Content);
@@ -509,14 +509,16 @@ end";
                 {
                     LiveBalLabel.Text = "Live Balance";
                     LiveBalLabel.ForeColor = SystemColors.ControlDarkDark;
-                    StatusLogIn.Text = "Unauthorized";
+                    StatusLogIn.Text = "Disconnected";
                 }
                 else
                 {
                     if (response.data != null)
                     {
-                        StatusLogIn.Text = String.Format("({0}) Authorized ", response.data.user.name);
+                        StatusLogIn.Text = String.Format("({0}) Connected ", "");
                         textBox1.Enabled = false;
+
+                        currencySelect.Items.Clear();
                         for (var i = 0; i < response.data.user.balances.Count; i++)
                         {
                             if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
@@ -526,15 +528,18 @@ end";
                                 currentBal = response.data.user.balances[i].available.amount;
                                 balanceLabel.Text = currentBal.ToString("0.00000000");
 
+
                             }
-                            //currencySelect.Items.Clear();
+                            currencySelect.Items.Add(response.data.user.balances[i].available.currency);
+                            
                             if (true)
                             {
+                              
                                 for (int s = 0; s < curr.Length; s++)
                                 {
                                     if (response.data.user.balances[i].available.currency == curr[s].ToLower())
                                     {
-                                        currencySelect.Items[s] = string.Format("{0} {1}", curr[s], response.data.user.balances[i].available.amount.ToString("0.00000000"));
+                                        //currencySelect.Items[s] = string.Format("{0} {1}", curr[s], response.data.user.balances[i].available.amount.ToString("0.00000000"));
                                         //currencySelect.Items.Add(string.Format("{0} {1}", s, response.data.user.balances[i].available.amount.ToString("0.00000000")));
                                         break;
                                     }
@@ -556,24 +561,28 @@ end";
         {
             try
             {
-
-                CreateOrUseDefaultRestClient();
-
-                BetQuery payload = new BetQuery
+                var mainurl = "https://"+ StakeSite + "/_api/graphql";
+                var request = new RestRequest(Method.POST);
+                var client = new RestClient(mainurl);
+                client.CookieContainer = cc;
+                client.UserAgent = UserAgent;
+                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                BetQuery payload = new BetQuery();
+                payload.operationName = "RotateSeedPair";
+                payload.variables = new BetClass()
                 {
-                    operationName = "RotateSeedPair",
-                    variables = new BetClass()
-                    {
-                        seed = RandomString(10)
-                    },
-                    query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                    seed = RandomString(10)
                 };
+                payload.query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
 
-                var request = CreateDefaultRestRequest(token);
+                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                //request.AddJsonBody(payload);
+                //IRestResponse response = client.Execute(request);
 
-                request.AddJsonBody(payload);
-
-                var restResponse = await SharedRestClient.ExecuteAsync(request);
+                var restResponse =
+                    await client.ExecuteAsync(request);
 
                 // Will output the HTML contents of the requested page
                 //Debug.WriteLine(restResponse.Content);
@@ -602,26 +611,29 @@ end";
         {
             try
             {
-
-                CreateOrUseDefaultRestClient();
-
-                BetQuery payload = new BetQuery
+                var mainurl = "https://" + StakeSite + "/_api/graphql";
+                var request = new RestRequest(Method.POST);
+                var client = new RestClient(mainurl);
+                client.CookieContainer = cc;
+                client.UserAgent = UserAgent;
+                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                BetQuery payload = new BetQuery();
+                payload.operationName = "CreateVaultDeposit";
+                payload.variables = new BetClass()
                 {
-                    operationName = "CreateVaultDeposit",
-                    variables = new BetClass()
-                    {
-                        currency = currencySelected.ToLower(),
-                        amount = sentamount
-                    },
-                    query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                    currency = currencySelected.ToLower(),
+                    amount = sentamount
                 };
+                payload.query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
 
-                var request = CreateDefaultRestRequest(token);
+                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+                //request.AddJsonBody(payload);
+                //IRestResponse response = client.Execute(request);
 
-                request.AddJsonBody(payload);
-
-                var restResponse = await SharedRestClient.ExecuteAsync(request);
-
+                var restResponse =
+                    await client.ExecuteAsync(request);
 
                 // Will output the HTML contents of the requested page
                 //Debug.WriteLine(restResponse.Content);
@@ -650,20 +662,25 @@ end";
         {
             try
             {
+                var mainurl = "https://" + StakeSite + "/_api/graphql";
+                var request = new RestRequest(Method.POST);
+                var client = new RestClient(mainurl);
+                client.CookieContainer = cc;
+                client.UserAgent = UserAgent;
+                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                BetQuery payload = new BetQuery();
+                payload.operationName = "UserBalances";
+                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
 
-                CreateOrUseDefaultRestClient();
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
 
-                BetQuery payload = new BetQuery
-                {
-                    operationName = "UserBalances",
-                    query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
-                };
+                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
 
-                var request = CreateDefaultRestRequest(token);
 
-                request.AddJsonBody(payload);
 
-                var restResponse = await SharedRestClient.ExecuteAsync(request);
+                var restResponse =
+                    await client.ExecuteAsync(request);
 
 
                 //Debug.WriteLine(restResponse.Content);
@@ -685,6 +702,11 @@ end";
                         {
                             //currencySelect.Items.Clear();
                         }
+                        
+                        if (isCurrency)
+                        {
+                            //currencySelect.Items.Clear();
+                        }
                         for (var i = 0; i < response.data.user.balances.Count; i++)
                         {
                             if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
@@ -694,19 +716,11 @@ end";
                                 currentBal = response.data.user.balances[i].available.amount;
                                 balanceLabel.Text = currentBal.ToString("0.00000000");
                             }
-                            //currencySelect.Items.Clear();
-                            if (true)
-                            {
-                                for (int s = 0; s < curr.Length; s++)
-                                {
-                                    if (response.data.user.balances[i].available.currency == curr[s].ToLower())
-                                    {
-                                        currencySelect.Items[s] = string.Format("{0} {1}", curr[s], response.data.user.balances[i].available.amount.ToString("0.00000000"));
-                                        //currencySelect.Items.Add(string.Format("{0} {1}", s, response.data.user.balances[i].available.amount.ToString("0.00000000")));
-                                        break;
-                                    }
-                                }
+
+                            if (isCurrency) { 
+                               // currencySelect.Items.Add(response.data.user.balances[i].available.currency);
                             }
+                            
                         }
                     }
                     //StatusLogIn.Text = "authorized";
@@ -724,29 +738,33 @@ end";
             {
                 if (running)
                 {
-
-                    CreateOrUseDefaultRestClient();
-
-                    BetQuery payload = new BetQuery
+                    var mainurl = "https://" + StakeSite + "/_api/graphql";
+                    var request = new RestRequest(Method.POST);
+                    var client = new RestClient(mainurl);
+                    client.CookieContainer = cc;
+                    client.UserAgent = UserAgent;
+                    client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                    BetQuery payload = new BetQuery();
+                    payload.variables = new BetClass()
                     {
-                        variables = new BetClass()
-                        {
-                            currency = currencySelected,
-                            amount = amount,
-                            risk = riskSelected.ToLower(),
-                            numbers = StratergyArray,
-                            identifier = RandomString(21)
+                        currency = currencySelected,
+                        amount = amount,
+                        risk = riskSelected.ToLower(),
+                        numbers = StratergyArray,
+                        identifier = RandomString(21)
 
-                        },
-                        query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n"
                     };
 
-                    var request = CreateDefaultRestRequest(token);
+                    payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
 
-                    request.AddJsonBody(payload);
+                    request.AddHeader("Content-Type", "application/json");
+                    request.AddHeader("x-access-token", token);
+
+                    request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
 
 
-                    var restResponse = await SharedRestClient.ExecuteAsync(request);
+                    var restResponse =
+                        await client.ExecuteAsync(request);
 
                     //label4.Text = restResponse.Content;
 
@@ -793,12 +811,12 @@ end";
                             winstreak = 0;
                             isWin = false;
                             losses++;
-
+                            
                         }
 
                         Log(response);
-                        CheckBalance(false);
-
+                        await CheckBalance(false);
+                        
                         currentProfit += response.data.kenoBet.payout - response.data.kenoBet.amount;
                         profitLabel.Text = currentProfit.ToString("0.00000000");
                         var matchList = response.data.kenoBet.state.drawnNumbers.Intersect(response.data.kenoBet.state.selectedNumbers);
@@ -889,7 +907,7 @@ end";
             wincountLabel.Text = wins.ToString();
             losecountLabel.Text = losses.ToString();
             totalbetsLabel.Text = (wins + losses).ToString();
-            currentStreakLabel.Text = (winstreak > 0) ? winstreak.ToString() : (-losestreak).ToString();
+            currentStreakLabel.Text = (winstreak > 0) ? winstreak.ToString() : (-losestreak).ToString() ;
             lowestProfitLabel.Text = lowestProfit.Min().ToString("0.00000000");
             highestProfitLabel.Text = highestProfit.Max().ToString("0.00000000");
             highestBetLabel.Text = highestBet.Max().ToString("0.00000000");
@@ -1067,14 +1085,14 @@ end";
 
         private async void currencySelect_SelectedIndexChanged(object sender, EventArgs e)
         {
-            currencySelected = curr[currencySelect.SelectedIndex].ToLower();
+            currencySelected = currencySelect.Text.ToLower();
+            await CheckBalance(false);
 
-            string[] current = currencySelect.Text.Split(' ');
-            if (current.Length > 1)
-            {
-                LiveBalLabel.Text = String.Format("{0} | {1}", current[0], current[1]);
-                balanceLabel.Text = current[1];
-            }
+
+            LiveBalLabel.Text = String.Format("{0} | {1}", currencySelect.Text, currentBal.ToString("0.00000000"));
+            balanceLabel.Text = currentBal.ToString("0.00000000");
+
+
 
         }
 
@@ -1086,15 +1104,8 @@ end";
         private async void textBox1_TextChanged(object sender, EventArgs e)
         {
             token = textBox1.Text;
-            if (token.Length == 96)
-            {
-                await Authorize();
-                await Task.Delay(200);
-            }
-            else
-            {
-                StatusLogIn.Text = "Unauthorized";
-            }
+            Properties.Settings.Default.token = token;
+            
         }
 
         private void LiveBalLabel_TextChanged(object sender, EventArgs e)
@@ -1106,14 +1117,13 @@ end";
 
         private void siteStake_SelectedIndexChanged(object sender, EventArgs e)
         {
-            StakeSite = siteStake.Text.ToLower();
-            textBox1_TextChanged(null,null);
+            
 
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-
+           
         }
 
         private void CmdBtn_Click(object sender, EventArgs e)
@@ -1174,6 +1184,39 @@ end";
             xList.Add(0);
             yList.Add(0);
             data.Clear();
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            ClearanceCookie = textBox2.Text;
+            Properties.Settings.Default.cookie = ClearanceCookie;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            UserAgent = textBox3.Text;
+            Properties.Settings.Default.agent = UserAgent;
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            Authorize();
+        }
+
+        private void tabPage3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.textCode = richTextBox1.Text;
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+            StakeSite = textBox4.Text.ToLower();
+            Properties.Settings.Default.site = StakeSite;
         }
     }
 
@@ -1431,6 +1474,6 @@ end";
         public int hits { get; set; }
         public double multiplier { get; set; }
     }
-
+    
 
 }

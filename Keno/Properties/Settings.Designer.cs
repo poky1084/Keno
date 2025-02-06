@@ -8,22 +8,87 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Keno.Properties
-{
-
-
+namespace Keno.Properties {
+    
+    
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "11.0.0.0")]
-    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase
-    {
-
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.11.0.0")]
+    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
+        
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-
-        public static Settings Default
-        {
-            get
-            {
+        
+        public static Settings Default {
+            get {
                 return defaultInstance;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string token {
+            get {
+                return ((string)(this["token"]));
+            }
+            set {
+                this["token"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string cookie {
+            get {
+                return ((string)(this["cookie"]));
+            }
+            set {
+                this["cookie"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string agent {
+            get {
+                return ((string)(this["agent"]));
+            }
+            set {
+                this["agent"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"nextbet  = 0.00000000 --sets your first bet.
+selected = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10} -- set selected tiles
+risk     = ""low"" -- set risk level
+
+function dobet()
+    if (win) then
+        print(""hit counts: "" .. lastBet.hits) 
+        print(""multiplier: "" .. lastBet.multiplier .. ""x"")
+    end
+end")]
+        public string textCode {
+            get {
+                return ((string)(this["textCode"]));
+            }
+            set {
+                this["textCode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("stake.bet")]
+        public string site {
+            get {
+                return ((string)(this["site"]));
+            }
+            set {
+                this["site"] = value;
             }
         }
     }

@@ -1,5 +1,4 @@
-﻿using RestSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,30 +6,6 @@ using System.Threading.Tasks;
 
 namespace Keno
 {
-
-
-    //public class ApiHelper
-    //{
-
-
-
-    //    public static RestRequest CreateDefaultRestRequest(string apiKey)
-    //    {
-    //        RestRequest restRequest = new RestRequest(Method.POST);
-
-    //        restRequest.AddHeader("authorization", string.Format("Bearer {0}", apiKey));
-    //        restRequest.AddHeader("x-access-token", apiKey);
-
-    //        restRequest.AddHeader("X-Requested-With", "XMLHttpRequest");
-
-    //        restRequest.AddHeader("Content-type", "application/json");
-
-    //        return restRequest;
-    //    }
-
-    //}
-
-
     public class BetQuery
     {
         public string operationName { get; set; }
