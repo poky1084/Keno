@@ -45,6 +45,8 @@
             this.StatusLogIn = new System.Windows.Forms.ToolStripStatusLabel();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.label9 = new System.Windows.Forms.Label();
+            this.textBox4 = new System.Windows.Forms.TextBox();
             this.button3 = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
@@ -102,8 +104,6 @@
             this.autoPickBtn = new System.Windows.Forms.Button();
             this.LiveBalLabel = new System.Windows.Forms.TextBox();
             this.riskLabel = new System.Windows.Forms.Label();
-            this.textBox4 = new System.Windows.Forms.TextBox();
-            this.label9 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.tabControl1.SuspendLayout();
@@ -285,6 +285,26 @@
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Main";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(14, 45);
+            this.label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(53, 20);
+            this.label9.TabIndex = 19;
+            this.label9.Text = "mirror:";
+            // 
+            // textBox4
+            // 
+            this.textBox4.Location = new System.Drawing.Point(79, 42);
+            this.textBox4.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox4.Name = "textBox4";
+            this.textBox4.Size = new System.Drawing.Size(162, 26);
+            this.textBox4.TabIndex = 18;
+            this.textBox4.Text = "stake.bet";
+            this.textBox4.TextChanged += new System.EventHandler(this.textBox4_TextChanged);
             // 
             // button3
             // 
@@ -746,15 +766,6 @@
             // 
             this.currencySelect.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.currencySelect.FormattingEnabled = true;
-            this.currencySelect.Items.AddRange(new object[] {
-            "BTC",
-            "ETH",
-            "LTC",
-            "DOGE",
-            "XRP",
-            "BCH",
-            "TRX",
-            "EOS"});
             this.currencySelect.Location = new System.Drawing.Point(393, 42);
             this.currencySelect.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.currencySelect.Name = "currencySelect";
@@ -990,26 +1001,6 @@
             this.riskLabel.Size = new System.Drawing.Size(50, 25);
             this.riskLabel.TabIndex = 10;
             this.riskLabel.Text = "Risk:";
-            // 
-            // textBox4
-            // 
-            this.textBox4.Location = new System.Drawing.Point(79, 42);
-            this.textBox4.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.textBox4.Name = "textBox4";
-            this.textBox4.Size = new System.Drawing.Size(162, 26);
-            this.textBox4.TabIndex = 18;
-            this.textBox4.Text = "stake.bet";
-            this.textBox4.TextChanged += new System.EventHandler(this.textBox4_TextChanged);
-            // 
-            // label9
-            // 
-            this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(14, 45);
-            this.label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(53, 20);
-            this.label9.TabIndex = 19;
-            this.label9.Text = "mirror:";
             // 
             // Form1
             // 
