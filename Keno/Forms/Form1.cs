@@ -134,6 +134,7 @@ namespace Keno
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
 
+            listView1.SetDoubleBuffered(true);
             initForm = this;
             //currencySelect.SelectedIndex = 0;
             riskSelect.SelectedIndex = 1;
@@ -1468,7 +1469,21 @@ namespace Keno
             new double[] { 0, 0, 0, 0, 3.5, 8, 13, 63, 500, 800, 1000 }
         };
     }
-
+    public static class ListViewExtensions
+    {
+        /// <summary>
+        /// Sets the double buffered property of a list view to the specified value
+        /// </summary>
+        /// <param name="listView">The List view</param>
+        /// <param name="doubleBuffered">Double Buffered or not</param>
+        public static void SetDoubleBuffered(this System.Windows.Forms.ListView listView, bool doubleBuffered = true)
+        {
+            listView
+                .GetType()
+                .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(listView, doubleBuffered, null);
+        }
+    }
     public class lastbet
     {
         public int hits { get; set; }
