@@ -207,8 +207,8 @@ namespace Keno
         private void LoadSettings()
         {
             textBox1.Text = Properties.Settings.Default.token;
-            textBox3.Text = Properties.Settings.Default.agent;
-            textBox2.Text = Properties.Settings.Default.cookie;
+           // textBox3.Text = Properties.Settings.Default.agent;
+            //textBox2.Text = Properties.Settings.Default.cookie;
             textBox4.Text = Properties.Settings.Default.site;
 
         }
@@ -483,15 +483,16 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://" + StakeSite + "/_api/graphql";
+                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
                 var request = new RestRequest(Method.POST);
                 var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                //client.CookieContainer = cc;
+                //client.UserAgent = UserAgent;
+               //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
                 BetQuery payload = new BetQuery();
                 payload.operationName = "UserBalances";
                 payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
+                payload.token = token;
                 request.AddHeader("Content-Type", "application/json");
                 request.AddHeader("x-access-token", token);
 
@@ -503,7 +504,7 @@ namespace Keno
                     await client.ExecuteAsync(request);
 
                 // Will output the HTML contents of the requested page
-                //Debug.WriteLine(restResponse.Content);
+                Debug.WriteLine(restResponse.Content);
                 ActiveData response = JsonConvert.DeserializeObject<ActiveData>(restResponse.Content);
                 //System.Diagnostics.Debug.WriteLine(restResponse.Content);
                 if (response.errors != null)
@@ -562,18 +563,19 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://"+ StakeSite + "/_api/graphql";
+                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
                 var request = new RestRequest(Method.POST);
                 var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                //client.CookieContainer = cc;
+                ////client.UserAgent = UserAgent;
+                //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
                 BetQuery payload = new BetQuery();
                 payload.operationName = "RotateSeedPair";
                 payload.variables = new BetClass()
                 {
                     seed = RandomString(10)
                 };
+                payload.token = token;
                 payload.query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
                 request.AddHeader("Content-Type", "application/json");
                 request.AddHeader("x-access-token", token);
@@ -612,12 +614,12 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://" + StakeSite + "/_api/graphql";
+                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
                 var request = new RestRequest(Method.POST);
                 var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+               // client.CookieContainer = cc;
+                //client.UserAgent = UserAgent;
+                //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
                 BetQuery payload = new BetQuery();
                 payload.operationName = "CreateVaultDeposit";
                 payload.variables = new BetClass()
@@ -625,6 +627,7 @@ namespace Keno
                     currency = currencySelected.ToLower(),
                     amount = sentamount
                 };
+                payload.token = token;
                 payload.query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
                 request.AddHeader("Content-Type", "application/json");
                 request.AddHeader("x-access-token", token);
@@ -663,16 +666,16 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://" + StakeSite + "/_api/graphql";
+                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
                 var request = new RestRequest(Method.POST);
                 var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                //client.CookieContainer = cc;
+                //client.UserAgent = UserAgent;
+                //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
                 BetQuery payload = new BetQuery();
                 payload.operationName = "UserBalances";
                 payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-
+                payload.token = token;
                 request.AddHeader("Content-Type", "application/json");
                 request.AddHeader("x-access-token", token);
 
@@ -739,12 +742,12 @@ namespace Keno
             {
                 if (running)
                 {
-                    var mainurl = "https://" + StakeSite + "/_api/graphql";
+                    var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
                     var request = new RestRequest(Method.POST);
                     var client = new RestClient(mainurl);
-                    client.CookieContainer = cc;
-                    client.UserAgent = UserAgent;
-                    client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+                    //client.CookieContainer = cc;
+                    //client.UserAgent = UserAgent;
+                    //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
                     BetQuery payload = new BetQuery();
                     payload.variables = new BetClass()
                     {
@@ -757,7 +760,7 @@ namespace Keno
                     };
 
                     payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
-
+                    payload.token = token;
                     request.AddHeader("Content-Type", "application/json");
                     request.AddHeader("x-access-token", token);
 
@@ -1189,13 +1192,13 @@ namespace Keno
 
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
-            ClearanceCookie = textBox2.Text;
+            //ClearanceCookie = textBox2.Text;
             Properties.Settings.Default.cookie = ClearanceCookie;
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e)
         {
-            UserAgent = textBox3.Text;
+           // UserAgent = textBox3.Text;
             Properties.Settings.Default.agent = UserAgent;
         }
 
