@@ -5,6 +5,8 @@ Keno bot written for Stake original game.
 <b>Stake</b>: poky1084 <br />
 <b>Telegram:</b>: @poky_1084
 
+Tutorial: https://www.youtube.com/watch?v=3NvXqEpnJ5c
+
 Install Python on your windows pc:
 https://www.python.org/downloads/
 
