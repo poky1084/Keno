@@ -6,12 +6,20 @@ using System.Threading.Tasks;
 
 namespace Keno
 {
+    public class BetSend
+    {
+        public string operationName { get; set; }
+        public string query { get; set; }
+        public BetClass variables { get; set; }
+
+    }
     public class BetQuery
     {
         public string operationName { get; set; }
         public string query { get; set; }
         public BetClass variables { get; set; }
         public string token { get; set; }
+        //public string profile { get; set; }
 
     }
     public class BetClass

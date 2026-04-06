@@ -187,6 +187,35 @@ namespace Keno
 
             richTextBox1.TextChanged += this.richTextBox1_TextChanged;
             richTextBox1.Text = Properties.Settings.Default.textCode;
+
+            BrowserFetch.StartServer();
+        }
+
+        // Shared GraphQL helper — replaces ALL RestSharp calls
+        private async Task<string> GraphQL(string operationName, string query,
+                                            BetClass variables = null)
+        {
+            var url = "https://" + StakeSite + "/_api/graphql";
+
+            var body = new BetSend
+            {
+                operationName = operationName,
+                query = query,
+                variables = variables
+            };
+
+            var options = new
+            {
+                method = "POST",
+                headers = new Dictionary<string, string>
+        {
+            { "Content-Type", "application/json" },
+            { "x-access-token", token }
+        },
+                body = body
+            };
+
+            return await BrowserFetch.FetchAsync(url, options);
         }
         private void Application_ApplicationExit(object sender, EventArgs e)
         {
@@ -483,29 +512,11 @@ namespace Keno
         {
             try
             {
-                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                //client.CookieContainer = cc;
-                //client.UserAgent = UserAgent;
-               //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "UserBalances";
-                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                payload.token = token;
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                // Will output the HTML contents of the requested page
-                Debug.WriteLine(restResponse.Content);
-                ActiveData response = JsonConvert.DeserializeObject<ActiveData>(restResponse.Content);
+                var json = await GraphQL(
+                    "UserBalances",
+                    "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                );
+                ActiveData response = JsonConvert.DeserializeObject<ActiveData>(json);
                 //System.Diagnostics.Debug.WriteLine(restResponse.Content);
                 if (response.errors != null)
                 {
@@ -526,7 +537,7 @@ namespace Keno
                             if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
                             {
                                 LiveBalLabel.ForeColor = Color.Black;
-                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected.ToUpper(), response.data.user.balances[i].available.amount.ToString("0.00000000"));
+                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
                                 currentBal = response.data.user.balances[i].available.amount;
                                 balanceLabel.Text = currentBal.ToString("0.00000000");
 
@@ -563,33 +574,12 @@ namespace Keno
         {
             try
             {
-                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                //client.CookieContainer = cc;
-                ////client.UserAgent = UserAgent;
-                //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "RotateSeedPair";
-                payload.variables = new BetClass()
-                {
-                    seed = RandomString(10)
-                };
-                payload.token = token;
-                payload.query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                // Will output the HTML contents of the requested page
-                //Debug.WriteLine(restResponse.Content);
-                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+                var json = await GraphQL(
+            "RotateSeedPair",
+            "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed { id seed __typename }\n        activeServerSeed { id nonce seedHash nextSeedHash __typename }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+            new BetClass { seed = RandomString(10) }
+        );
+                Data response = JsonConvert.DeserializeObject<Data>(json);
                 //System.Diagnostics.Debug.WriteLine(restResponse.Content);
                 if (response.errors != null)
                 {
@@ -614,34 +604,12 @@ namespace Keno
         {
             try
             {
-                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-               // client.CookieContainer = cc;
-                //client.UserAgent = UserAgent;
-                //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "CreateVaultDeposit";
-                payload.variables = new BetClass()
-                {
-                    currency = currencySelected.ToLower(),
-                    amount = sentamount
-                };
-                payload.token = token;
-                payload.query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                // Will output the HTML contents of the requested page
-                //Debug.WriteLine(restResponse.Content);
-                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+                var json = await GraphQL(
+            "CreateVaultDeposit",
+            "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id amount currency\n    user { id balances { available { amount currency __typename } vault { amount currency __typename } __typename } __typename }\n    __typename\n  }\n}\n",
+            new BetClass { currency = currencySelected.ToLower(), amount = sentamount }
+        );
+                Data response = JsonConvert.DeserializeObject<Data>(json);
                 //System.Diagnostics.Debug.WriteLine(restResponse.Content);
                 if (response.errors != null)
                 {
@@ -666,29 +634,11 @@ namespace Keno
         {
             try
             {
-                var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                //client.CookieContainer = cc;
-                //client.UserAgent = UserAgent;
-                //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "UserBalances";
-                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                payload.token = token;
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-
-
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-
-                //Debug.WriteLine(restResponse.Content);
-                BalancesData response = JsonConvert.DeserializeObject<BalancesData>(restResponse.Content);
+                var json = await GraphQL(
+            "UserBalances",
+            "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+        );
+                BalancesData response = JsonConvert.DeserializeObject<BalancesData>(json);
 
 
                 if (response.errors != null)
@@ -716,7 +666,7 @@ namespace Keno
                             if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
                             {
                                 LiveBalLabel.ForeColor = Color.Black;
-                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected.ToUpper(), response.data.user.balances[i].available.amount.ToString("0.00000000"));
+                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
                                 currentBal = response.data.user.balances[i].available.amount;
                                 balanceLabel.Text = currentBal.ToString("0.00000000");
                             }
@@ -742,38 +692,23 @@ namespace Keno
             {
                 if (running)
                 {
-                    var mainurl = "http://localhost:5000/graphql?url=https://" + StakeSite + "/_api/graphql";
-                    var request = new RestRequest(Method.POST);
-                    var client = new RestClient(mainurl);
-                    //client.CookieContainer = cc;
-                    //client.UserAgent = UserAgent;
-                    //client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                    BetQuery payload = new BetQuery();
-                    payload.variables = new BetClass()
-                    {
-                        currency = currencySelected,
-                        amount = amount,
-                        risk = riskSelected.ToLower(),
-                        numbers = StratergyArray,
-                        identifier = RandomString(21)
-
-                    };
-
-                    payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
-                    payload.token = token;
-                    request.AddHeader("Content-Type", "application/json");
-                    request.AddHeader("x-access-token", token);
-
-                    request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-
-
-                    var restResponse =
-                        await client.ExecuteAsync(request);
-
-                    //label4.Text = restResponse.Content;
-
+                    var json = await GraphQL(
+            "KenoBet",
+            "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state { ...CasinoGameKeno }\n  }\n}\nfragment CasinoBet on CasinoBet {\n  id active payoutMultiplier amountMultiplier amount payout updatedAt currency game\n  user { id name }\n}\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers selectedNumbers risk\n}\n",
+            new BetClass
+            {
+                currency = currencySelected,
+                amount = amount,
+                risk = riskSelected.ToLower(),
+                numbers = StratergyArray,
+                identifier = RandomString(21)
+            }
+        );
                     button2.Enabled = true;
-                    Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+                    Data response = JsonConvert.DeserializeObject<Data>(json);
+
+                    
+                    
 
                     if (response.errors != null)
                     {
