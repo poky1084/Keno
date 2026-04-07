@@ -45,8 +45,14 @@
             this.StatusLogIn = new System.Windows.Forms.ToolStripStatusLabel();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.btnWebViewLogin = new System.Windows.Forms.Button();
+            this.label9 = new System.Windows.Forms.Label();
             this.textBox4 = new System.Windows.Forms.TextBox();
             this.button3 = new System.Windows.Forms.Button();
+            this.label7 = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
+            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.textBox2 = new System.Windows.Forms.TextBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.ResetChartClicked = new System.Windows.Forms.LinkLabel();
             this.currentStreakLabel = new System.Windows.Forms.Label();
@@ -117,7 +123,7 @@
             // 
             this.button1.Enabled = false;
             this.button1.Location = new System.Drawing.Point(972, 332);
-            this.button1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button1.Margin = new System.Windows.Forms.Padding(4);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(94, 27);
             this.button1.TabIndex = 1;
@@ -128,7 +134,7 @@
             // button2
             // 
             this.button2.Location = new System.Drawing.Point(621, 332);
-            this.button2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button2.Margin = new System.Windows.Forms.Padding(4);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(115, 27);
             this.button2.TabIndex = 2;
@@ -139,7 +145,7 @@
             // clearTable
             // 
             this.clearTable.Location = new System.Drawing.Point(869, 332);
-            this.clearTable.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.clearTable.Margin = new System.Windows.Forms.Padding(4);
             this.clearTable.Name = "clearTable";
             this.clearTable.Size = new System.Drawing.Size(103, 27);
             this.clearTable.TabIndex = 4;
@@ -151,9 +157,9 @@
             // 
             this.groupBox1.Controls.Add(this.listView1);
             this.groupBox1.Location = new System.Drawing.Point(0, 356);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox1.Size = new System.Drawing.Size(1067, 156);
             this.groupBox1.TabIndex = 5;
             this.groupBox1.TabStop = false;
@@ -177,7 +183,7 @@
             this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listView1.HideSelection = false;
             this.listView1.Location = new System.Drawing.Point(4, 19);
-            this.listView1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.listView1.Margin = new System.Windows.Forms.Padding(4);
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(1059, 133);
             this.listView1.TabIndex = 0;
@@ -250,7 +256,7 @@
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Controls.Add(this.tabPage5);
             this.tabControl1.Location = new System.Drawing.Point(4, 2);
-            this.tabControl1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabControl1.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
             this.tabControl1.Size = new System.Drawing.Size(612, 356);
@@ -258,8 +264,14 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.btnWebViewLogin);
+            this.tabPage1.Controls.Add(this.label9);
             this.tabPage1.Controls.Add(this.textBox4);
             this.tabPage1.Controls.Add(this.button3);
+            this.tabPage1.Controls.Add(this.label7);
+            this.tabPage1.Controls.Add(this.label6);
+            this.tabPage1.Controls.Add(this.textBox3);
+            this.tabPage1.Controls.Add(this.textBox2);
             this.tabPage1.Controls.Add(this.groupBox4);
             this.tabPage1.Controls.Add(this.BetCost);
             this.tabPage1.Controls.Add(this.label2);
@@ -268,18 +280,39 @@
             this.tabPage1.Controls.Add(this.currencySelect);
             this.tabPage1.Controls.Add(this.riskSelect);
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
-            this.tabPage1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage1.Margin = new System.Windows.Forms.Padding(4);
             this.tabPage1.Name = "tabPage1";
-            this.tabPage1.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(4);
             this.tabPage1.Size = new System.Drawing.Size(604, 327);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Main";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
+            // btnWebViewLogin
+            // 
+            this.btnWebViewLogin.Location = new System.Drawing.Point(171, 62);
+            this.btnWebViewLogin.Margin = new System.Windows.Forms.Padding(4);
+            this.btnWebViewLogin.Name = "btnWebViewLogin";
+            this.btnWebViewLogin.Size = new System.Drawing.Size(94, 23);
+            this.btnWebViewLogin.TabIndex = 20;
+            this.btnWebViewLogin.Text = "Cookie Get";
+            this.btnWebViewLogin.UseVisualStyleBackColor = true;
+            this.btnWebViewLogin.Click += new System.EventHandler(this.btnWebViewLogin_Click_1);
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(12, 36);
+            this.label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(44, 16);
+            this.label9.TabIndex = 19;
+            this.label9.Text = "mirror:";
+            // 
             // textBox4
             // 
             this.textBox4.Location = new System.Drawing.Point(70, 34);
-            this.textBox4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox4.Margin = new System.Windows.Forms.Padding(4);
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(144, 22);
             this.textBox4.TabIndex = 18;
@@ -289,13 +322,51 @@
             // button3
             // 
             this.button3.Location = new System.Drawing.Point(69, 62);
-            this.button3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button3.Margin = new System.Windows.Forms.Padding(4);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(94, 23);
             this.button3.TabIndex = 11;
-            this.button3.Text = "Check";
+            this.button3.Text = "Login";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(422, 8);
+            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(45, 16);
+            this.label7.TabIndex = 17;
+            this.label7.Text = "Agent:";
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(215, 8);
+            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(53, 16);
+            this.label6.TabIndex = 16;
+            this.label6.Text = "Cookie:";
+            // 
+            // textBox3
+            // 
+            this.textBox3.Location = new System.Drawing.Point(476, 5);
+            this.textBox3.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox3.Name = "textBox3";
+            this.textBox3.Size = new System.Drawing.Size(122, 22);
+            this.textBox3.TabIndex = 15;
+            this.textBox3.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(271, 5);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(144, 22);
+            this.textBox2.TabIndex = 14;
+            this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
             // 
             // groupBox4
             // 
@@ -329,9 +400,9 @@
             this.groupBox4.Controls.Add(this.label3);
             this.groupBox4.Controls.Add(this.panel1);
             this.groupBox4.Location = new System.Drawing.Point(7, 90);
-            this.groupBox4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox4.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox4.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox4.Size = new System.Drawing.Size(590, 226);
             this.groupBox4.TabIndex = 13;
             this.groupBox4.TabStop = false;
@@ -650,7 +721,7 @@
             // panel1
             // 
             this.panel1.Location = new System.Drawing.Point(253, 100);
-            this.panel1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.panel1.Margin = new System.Windows.Forms.Padding(4);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(333, 126);
             this.panel1.TabIndex = 8;
@@ -664,7 +735,7 @@
             0,
             393216});
             this.BetCost.Location = new System.Drawing.Point(365, 62);
-            this.BetCost.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.BetCost.Margin = new System.Windows.Forms.Padding(4);
             this.BetCost.Maximum = new decimal(new int[] {
             1410065408,
             2,
@@ -698,9 +769,9 @@
             // textBox1
             // 
             this.textBox1.Location = new System.Drawing.Point(69, 5);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(4);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(524, 22);
+            this.textBox1.Size = new System.Drawing.Size(144, 22);
             this.textBox1.TabIndex = 6;
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
@@ -709,7 +780,7 @@
             this.currencySelect.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.currencySelect.FormattingEnabled = true;
             this.currencySelect.Location = new System.Drawing.Point(349, 34);
-            this.currencySelect.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.currencySelect.Margin = new System.Windows.Forms.Padding(4);
             this.currencySelect.Name = "currencySelect";
             this.currencySelect.Size = new System.Drawing.Size(248, 24);
             this.currencySelect.TabIndex = 4;
@@ -725,7 +796,7 @@
             "Medium",
             "High"});
             this.riskSelect.Location = new System.Drawing.Point(221, 34);
-            this.riskSelect.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.riskSelect.Margin = new System.Windows.Forms.Padding(4);
             this.riskSelect.Name = "riskSelect";
             this.riskSelect.Size = new System.Drawing.Size(121, 24);
             this.riskSelect.TabIndex = 2;
@@ -735,9 +806,9 @@
             // 
             this.tabPage2.Controls.Add(this.tabControl2);
             this.tabPage2.Location = new System.Drawing.Point(4, 25);
-            this.tabPage2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage2.Margin = new System.Windows.Forms.Padding(4);
             this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(4);
             this.tabPage2.Size = new System.Drawing.Size(604, 327);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Script";
@@ -748,7 +819,7 @@
             this.tabControl2.Controls.Add(this.tabPage3);
             this.tabControl2.Controls.Add(this.tabPage4);
             this.tabControl2.Location = new System.Drawing.Point(4, 4);
-            this.tabControl2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabControl2.Margin = new System.Windows.Forms.Padding(4);
             this.tabControl2.Name = "tabControl2";
             this.tabControl2.SelectedIndex = 0;
             this.tabControl2.Size = new System.Drawing.Size(594, 316);
@@ -757,9 +828,9 @@
             // tabPage3
             // 
             this.tabPage3.Location = new System.Drawing.Point(4, 25);
-            this.tabPage3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage3.Margin = new System.Windows.Forms.Padding(4);
             this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(4);
             this.tabPage3.Size = new System.Drawing.Size(586, 287);
             this.tabPage3.TabIndex = 0;
             this.tabPage3.Text = "Lua";
@@ -770,7 +841,7 @@
             this.tabPage4.Controls.Add(this.groupBox3);
             this.tabPage4.Controls.Add(this.groupBox2);
             this.tabPage4.Location = new System.Drawing.Point(4, 25);
-            this.tabPage4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage4.Margin = new System.Windows.Forms.Padding(4);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Size = new System.Drawing.Size(586, 287);
             this.tabPage4.TabIndex = 1;
@@ -781,9 +852,9 @@
             // 
             this.groupBox3.Controls.Add(this.listBox1);
             this.groupBox3.Location = new System.Drawing.Point(295, 9);
-            this.groupBox3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox3.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox3.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox3.Size = new System.Drawing.Size(267, 267);
             this.groupBox3.TabIndex = 3;
             this.groupBox3.TabStop = false;
@@ -812,7 +883,7 @@
             "wagered -- get total wagered",
             "previousbet -- get prev. bet"});
             this.listBox1.Location = new System.Drawing.Point(4, 19);
-            this.listBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.listBox1.Margin = new System.Windows.Forms.Padding(4);
             this.listBox1.Name = "listBox1";
             this.listBox1.Size = new System.Drawing.Size(259, 244);
             this.listBox1.TabIndex = 0;
@@ -821,9 +892,9 @@
             // 
             this.groupBox2.Controls.Add(this.listBox2);
             this.groupBox2.Location = new System.Drawing.Point(20, 9);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox2.Size = new System.Drawing.Size(267, 267);
             this.groupBox2.TabIndex = 2;
             this.groupBox2.TabStop = false;
@@ -844,7 +915,7 @@
             "Not available:",
             "tip(username, amount) --send tip to user"});
             this.listBox2.Location = new System.Drawing.Point(4, 19);
-            this.listBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.listBox2.Margin = new System.Windows.Forms.Padding(4);
             this.listBox2.Name = "listBox2";
             this.listBox2.Size = new System.Drawing.Size(259, 244);
             this.listBox2.TabIndex = 0;
@@ -855,7 +926,7 @@
             this.tabPage5.Controls.Add(this.CmdBtn);
             this.tabPage5.Controls.Add(this.consoleLog);
             this.tabPage5.Location = new System.Drawing.Point(4, 25);
-            this.tabPage5.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tabPage5.Margin = new System.Windows.Forms.Padding(4);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Size = new System.Drawing.Size(604, 327);
             this.tabPage5.TabIndex = 2;
@@ -865,7 +936,7 @@
             // CmdBox
             // 
             this.CmdBox.Location = new System.Drawing.Point(135, 292);
-            this.CmdBox.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.CmdBox.Margin = new System.Windows.Forms.Padding(4);
             this.CmdBox.Name = "CmdBox";
             this.CmdBox.Size = new System.Drawing.Size(461, 22);
             this.CmdBox.TabIndex = 5;
@@ -873,7 +944,7 @@
             // CmdBtn
             // 
             this.CmdBtn.Location = new System.Drawing.Point(4, 290);
-            this.CmdBtn.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.CmdBtn.Margin = new System.Windows.Forms.Padding(4);
             this.CmdBtn.Name = "CmdBtn";
             this.CmdBtn.Size = new System.Drawing.Size(130, 28);
             this.CmdBtn.TabIndex = 4;
@@ -883,7 +954,7 @@
             // consoleLog
             // 
             this.consoleLog.Location = new System.Drawing.Point(4, 2);
-            this.consoleLog.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.consoleLog.Margin = new System.Windows.Forms.Padding(4);
             this.consoleLog.Name = "consoleLog";
             this.consoleLog.Size = new System.Drawing.Size(592, 290);
             this.consoleLog.TabIndex = 3;
@@ -899,7 +970,7 @@
             this.listView2.HideSelection = false;
             this.listView2.ImeMode = System.Windows.Forms.ImeMode.Disable;
             this.listView2.Location = new System.Drawing.Point(621, 283);
-            this.listView2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.listView2.Margin = new System.Windows.Forms.Padding(4);
             this.listView2.Name = "listView2";
             this.listView2.Scrollable = false;
             this.listView2.Size = new System.Drawing.Size(445, 50);
@@ -910,7 +981,7 @@
             // autoPickBtn
             // 
             this.autoPickBtn.Location = new System.Drawing.Point(784, 332);
-            this.autoPickBtn.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.autoPickBtn.Margin = new System.Windows.Forms.Padding(4);
             this.autoPickBtn.Name = "autoPickBtn";
             this.autoPickBtn.Size = new System.Drawing.Size(85, 27);
             this.autoPickBtn.TabIndex = 0;
@@ -925,7 +996,7 @@
             this.LiveBalLabel.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
             this.LiveBalLabel.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
             this.LiveBalLabel.Location = new System.Drawing.Point(627, 10);
-            this.LiveBalLabel.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.LiveBalLabel.Margin = new System.Windows.Forms.Padding(4);
             this.LiveBalLabel.Name = "LiveBalLabel";
             this.LiveBalLabel.ReadOnly = true;
             this.LiveBalLabel.Size = new System.Drawing.Size(115, 20);
@@ -960,7 +1031,7 @@
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.groupBox1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
             this.Text = "Keno";
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -1056,8 +1127,14 @@
         private System.Windows.Forms.Label wagerLabel;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.LinkLabel ResetChartClicked;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.TextBox textBox2;
         public System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox textBox4;
+        public System.Windows.Forms.Button btnWebViewLogin;
     }
 }
 
