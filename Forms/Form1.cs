@@ -1,0 +1,1600 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using RestSharp;
+using Newtonsoft.Json;
+using System.Diagnostics;
+using LiveCharts;
+using LiveCharts.WinForms;
+using LiveCharts.Defaults;
+using FastColoredTextBoxNS;
+using SharpLua;
+using System.Collections;
+using System.Net;
+
+namespace Keno
+{
+    public partial class Form1 : Form
+    {
+        CookieContainer cc = new CookieContainer();
+        private string UserAgent = "";
+        private string ClearanceCookie = "";
+
+        public List<int> StratergyArray = new List<int>();
+
+        
+        private FastColoredTextBox richTextBox1;
+        private stratGrid stratSelector;
+        LuaInterface lua = LuaRuntime.GetLua();
+
+        delegate void LogConsole(string text);
+        //delegate void dwithdraw(decimal Amount, string Address);
+        delegate void dtip(string username, decimal amount);
+        delegate void dvault(decimal sentamount);
+        delegate void dStop();
+        delegate void dResetSeed();
+        delegate void dResetStat();
+
+        public string StakeSite = "stake.com";
+        public string token = "";
+
+        public bool running = false;
+        public static Form1 initForm;
+        public string riskSelected = "low";
+        public string currencySelected = "btc";
+        public decimal BaseBet = 0;
+        public decimal amount = 0;
+        public decimal currentBal = 0;
+        public decimal currentProfit = 0;
+        public decimal currentWager = 0;
+        public bool isWin = false;
+        public int counter = 0;
+        public int wins = 0;
+        public int losses = 0;
+        public int winstreak = 0;
+        public int losestreak = 0;
+        public decimal Lastbet = 0;
+        long beginMs = 0;
+
+        public List<string> currencyList = new List<string>();
+		public int currencyIndex = 0;
+
+        List<decimal> highestProfit = new List<decimal> { 0 };
+        List<decimal> lowestProfit = new List<decimal> { 0 };
+        List<decimal> highestBet = new List<decimal> { 0 };
+
+        List<int> highestStreak = new List<int> { 0 };
+        List<int> lowestStreak = new List<int> { 0 };
+
+        public lastbet last = new lastbet();
+
+        public string[] curr = {
+            "BTC",
+            "ETH",
+            "LTC",
+            "DOGE",
+            "BCH",
+            "XRP",
+            "TRX",
+            "EOS",
+            "BNB",
+            "USDT",
+            "APE",
+            "BUSD",
+            "CRO",
+            "DAI",
+            "LINK",
+            "SAND",
+            "SHIB",
+            "UNI",
+            "USDC",
+            "VND",
+            "TRY",
+            "TRUMP",
+            "SWEEPS",
+            "POL",
+            "BRL"
+
+       };
+
+        CartesianChart ch = new CartesianChart();
+        ChartValues<ObservablePoint> data = new ChartValues<ObservablePoint>();
+
+        List<double> xList = new List<double>();
+        List<double> yList = new List<double>();
+        public Form1()
+        {
+            stratSelector = new Keno.stratGrid();
+            stratSelector.Location = new System.Drawing.Point(692, 41);
+            stratSelector.Name = "stratSelector";
+            stratSelector.Size = new System.Drawing.Size(398, 398);
+            stratSelector.squareData = new int[] {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            stratSelector.SquareSpacing = 3;
+            stratSelector.TabIndex = 2;
+            stratSelector.Text = "stratGrid1";
+
+            this.Controls.Add(stratSelector);
+
+            InitializeComponent();
+
+            groupBox1.BringToFront();
+            listView2.BringToFront();
+            button1.BringToFront();
+            button2.BringToFront();
+            autoPickBtn.BringToFront();
+            clearTable.BringToFront();
+
+            Text += " - " + Application.ProductVersion;
+            Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
+
+            listView1.SetDoubleBuffered(true);
+            initForm = this;
+            //currencySelect.SelectedIndex = 0;
+            riskSelect.SelectedIndex = 1;
+            //siteStake.SelectedIndex = 0;
+            this.listView1.ItemChecked += this.listView1_ItemChecked;
+            this.CmdBox.KeyDown += this.CmdBox_KeyDown;
+            //this.tabPage5.Click += this.tabPage5_Click;
+            xList.Add(0);
+            yList.Add(0);
+            data.Add(new ObservablePoint
+            {
+                X = xList[counter],
+                Y = yList[counter]
+            });
+            ch.Series = new SeriesCollection
+            {
+                new LiveCharts.Wpf.LineSeries
+                {
+                    Title = "Profit",
+                    Values = data,
+                    PointGeometrySize = 0,
+                    AreaLimit = 0
+                }
+            };
+            ch.AxisX.Add(new LiveCharts.Wpf.Axis
+            {
+                Separator = new LiveCharts.Wpf.Separator
+                {
+                    Step = 5
+                }
+            });
+            Func<double, string> formatFunc = (x) => string.Format("{0:0.000000}", x);
+            ch.AxisY.Add(new LiveCharts.Wpf.Axis
+            {
+                LabelFormatter = formatFunc
+            });
+
+            //ch.Series[0].ScalesYAt = 0;
+            ch.Width = 250;
+            panel1.Controls.Add(ch);
+
+            LoadSettings();
+            RegisterLua();
+
+            richTextBox1 = new FastColoredTextBox();
+            richTextBox1.Dock = DockStyle.Fill;
+            richTextBox1.Language = Language.Lua;
+            richTextBox1.BorderStyle = BorderStyle.FixedSingle;
+            tabPage3.Controls.Add(richTextBox1);
+
+            richTextBox1.TextChanged += this.richTextBox1_TextChanged;
+            richTextBox1.Text = Properties.Settings.Default.textCode;
+
+            BrowserFetch.StartServer();
+        }
+
+        // ─── Shared GraphQL helper — branches on cmbFetchMode ────────────────────
+        private async Task<string> GraphQL(string operationName, string query,
+                                            BetClass variables = null)
+        {
+            var url = "https://" + StakeSite + "/_api/graphql";
+            bool isExtension = cmbFetchMode.SelectedIndex == 1;
+
+            if (isExtension)
+            {
+                var body = new BetSend
+                {
+                    operationName = operationName,
+                    query = query,
+                    variables = variables
+                };
+
+                var options = new
+                {
+                    method = "POST",
+                    headers = new Dictionary<string, string>
+                    {
+                        { "Content-Type", "application/json" },
+                        { "x-access-token", token }
+                    },
+                    body = body
+                };
+
+                return await BrowserFetch.FetchAsync(url, options);
+            }
+            else
+            {
+                // Cookie mode — use RestSharp with cf_clearance cookie.
+                var client = new RestClient(url);
+                client.CookieContainer = cc;
+                client.UserAgent = UserAgent;
+                client.CookieContainer.Add(
+                    new System.Net.Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+
+                var payload = new BetSend
+                {
+                    operationName = operationName,
+                    query = query,
+                    variables = variables
+                };
+
+                var request = new RestRequest(Method.POST);
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
+                request.AddParameter("application/json",
+                    JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+
+                var resp = await client.ExecuteAsync(request);
+                return resp.Content;
+            }
+        }
+
+        // ─── Cookie-status helper ─────────────────────────────────────────────────
+        private void UpdateCookieStatusLabel()
+        {
+            bool hasCookie = !string.IsNullOrWhiteSpace(ClearanceCookie);
+            lblCookieStatus.Text      = hasCookie ? "Cookie OK" : "Cookie OFF";
+            lblCookieStatus.ForeColor = hasCookie ? Color.Orange : Color.Gray;
+            if (hasCookie)
+            {
+                Authorize();
+            }
+
+        }
+
+
+        private void Application_ApplicationExit(object sender, EventArgs e)
+        {
+
+            Properties.Settings.Default.Save();
+
+        }
+        private async void btnWebViewLogin_Click_1(object sender, EventArgs e)
+        {
+            using (var loginForm = new WebViewLogin(StakeSite))
+            {
+                // ShowDialog blocks until user clicks Done (DialogResult.OK)
+                var result = loginForm.ShowDialog(this);
+
+                if (result == DialogResult.OK)
+                {
+                    // Apply captured values
+                    ClearanceCookie = loginForm.CapturedClearance;
+                    UserAgent = loginForm.CapturedUserAgent;
+
+                    // Update UI text fields
+                    textBox2.Text = ClearanceCookie;
+                    textBox3.Text = UserAgent;
+
+                    // Save to settings
+                    Properties.Settings.Default.cookie = ClearanceCookie;
+                    Properties.Settings.Default.agent = UserAgent;
+                    Properties.Settings.Default.Save();
+
+                    // Rebuild CookieContainer fresh
+                    cc = new CookieContainer();
+
+                    UpdateCookieStatusLabel();
+                }
+            }
+
+        }
+        private void RegisterLua()
+        {
+            
+            lua.RegisterFunction("vault", this, new dvault(luaVault).Method);
+            lua.RegisterFunction("tip", this, new dtip(luatip).Method);
+            lua.RegisterFunction("print", this, new LogConsole(luaPrint).Method);
+            lua.RegisterFunction("stop", this, new dStop(luaStop).Method);
+            lua.RegisterFunction("resetseed", this, new dResetSeed(luaResetSeed).Method);
+            lua.RegisterFunction("resetstats", this, new dResetStat(luaResetStat).Method);
+        }
+        private void LoadSettings()
+        {
+            textBox1.Text = Properties.Settings.Default.token;
+			textBox3.Text = Properties.Settings.Default.agent;
+			textBox2.Text = Properties.Settings.Default.cookie;
+			textBox4.Text = Properties.Settings.Default.site;
+
+			// Restore saved credentials into fields used by cookie mode
+			ClearanceCookie = Properties.Settings.Default.cookie;
+			UserAgent       = Properties.Settings.Default.agent;
+			
+			// Restore saved currency
+			currencySelected = Properties.Settings.Default.currency;
+			if (string.IsNullOrEmpty(currencySelected))
+				currencySelected = "btc";
+			
+			currencyIndex = Properties.Settings.Default.currencyIndex;
+			if (currencyIndex < 0) currencyIndex = 0;
+
+			// Restore fetch-mode selection (triggers cmbFetchMode_SelectedIndexChanged)
+			int savedIndex = Properties.Settings.Default.SavedTabIndex;
+			if (savedIndex >= 0 && savedIndex < cmbFetchMode.Items.Count)
+				cmbFetchMode.SelectedIndex = savedIndex;
+			else
+				cmbFetchMode.SelectedIndex = 0;
+
+			UpdateCookieStatusLabel();
+        }
+        private void SetLuaVariables(List<int> drawn)
+        {
+            lua["balance"] = currentBal;
+            lua["profit"] = currentProfit;
+            lua["currentstreak"] = (winstreak > 0) ? winstreak : -losestreak;
+            lua["previousbet"] = Lastbet;
+            lua["nextbet"] = Lastbet;
+            lua["bets"] = wins + losses;
+            lua["wins"] = wins;
+            lua["losses"] = losses;
+            lua["currency"] = currencySelected;
+            lua["wagered"] = currentWager;
+            lua["win"] = isWin;
+            lua["risk"] = riskSelected;
+            //lua["selected"] = StratergyArray;
+            lua["drawn"] = drawn;
+            lua["lastBet"] = last;
+        }
+
+        private void GetLuaVariables()
+        {
+            Lastbet = (decimal)(double)lua["nextbet"];
+            amount = Lastbet;
+            currencySelected = (string)lua["currency"];
+            riskSelected = (string)lua["risk"];
+            StratergyArray.Clear();
+            LuaTable tbl = lua.GetTable("selected");
+            System.Collections.Specialized.ListDictionary dict = lua.GetTableDict(tbl);
+            foreach (DictionaryEntry s in dict)
+            {
+                StratergyArray.Add(Convert.ToInt32(s.Value) - 1);
+            }
+        }
+
+        void luaStop()
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                luaPrint("Called stop.");
+                running = false;
+                bSta();
+            });
+            
+        }
+        void luaVault(decimal sentamount)
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                VaultSend(sentamount);
+            });
+        }
+        void luatip(string user, decimal amount)
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                luaPrint("Tipping not available.");
+            });
+        }
+        void luaPrint(string text)
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                consoleLog.AppendText(text + "\r\n");
+            });
+            
+        }
+        void luaResetSeed()
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                ResetSeeds();
+            });
+        }
+
+        void luaResetStat()
+        {
+            this.Invoke((MethodInvoker)delegate ()
+            {
+                currentProfit = 0;
+                currentWager = 0;
+                wins = 0;
+                losses = 0;
+                winstreak = 0;
+                losestreak = 0;
+                lowestStreak = new List<int> { 0 };
+                highestStreak = new List<int> { 0 };
+                highestProfit = new List<decimal> { 0 };
+                lowestProfit = new List<decimal> { 0 };
+                highestBet = new List<decimal> { 0 };
+            });
+        }
+
+        private void GetNumbersTables()
+        {
+ 
+        }
+
+        private void LuaSetSelectedVar()
+        {
+            LuaRuntime.Run(@"function listToTable(clrlist)
+                                            local t = {}
+                                            local it = clrlist:GetEnumerator()
+                                            while it:MoveNext() do
+                                              t[#t+1] = it.Current + 1
+                                            end
+                                            return t
+                                        end
+                                        drawn = listToTable(drawn)");
+        }
+
+
+
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            if (running == false)
+            {
+                if (StratergyArray.Count > 0)
+                {
+                    stratSelector.Clear(StratergyArray);
+                }
+                List<int> selectedSquares = new List<int>();
+                for (int i = 0; i < stratSelector.squareData.Length; i++)
+                {
+                    if (stratSelector.squareData[i] == 1)
+                        selectedSquares.Add(i);
+                }
+                currencySelect_SelectedIndexChanged(this, new EventArgs());
+                amount = BetCost.Value;
+                riskSelected = riskSelect.Text.ToLower(); ;
+                riskLabel.Text = string.Format("Risk: {0}", riskSelect.Text);
+                StratergyArray = selectedSquares;
+                button1.Enabled = false;
+                stratSelector.selectAllowed = false;
+                running = true;
+                await KenoBet(true);
+                running = false;
+                button1.Enabled = true;
+            }
+        }
+
+        private async void button2_Click(object sender, EventArgs e)
+        {
+            if (running == false)
+            {
+                await CheckBalance(false);
+                
+                try
+                {
+                    SetLuaVariables(new List<int> { });
+                    LuaSetSelectedVar();
+                    LuaRuntime.SetLua(lua);
+
+
+                    LuaRuntime.Run(richTextBox1.Text);
+
+                    GetNumbersTables();
+
+                }
+                catch (Exception ex)
+                {
+                    luaPrint("Lua ERROR!!");
+                    luaPrint(ex.Message);
+                }
+                GetLuaVariables();
+
+                //currencySelect.SelectedIndex = Array.FindIndex(curr, row => row == currencySelected.ToUpper());
+                
+
+                button1.Enabled = false;
+                autoPickBtn.Enabled = false;
+                clearTable.Enabled = false;
+                riskSelect.Enabled = false;
+                if (StratergyArray.Count > 0)
+                {
+                    stratSelector.Clear(StratergyArray);
+                }
+                AppendMultipliers(stratSelector.squareData);
+                running = true;
+                button2.Text = "Stop";
+                //button2.Enabled = false;
+                currencySelect.Enabled = false;
+                //textBox1.Enabled = false;
+                stratSelector.selectAllowed = false;
+
+                StartBet(false);
+            }
+            else
+            {
+                running = false;
+                bSta();
+            }
+        }
+
+        async Task StartBet(bool clear)
+        {
+            while (running == true)
+            {
+                if (beginMs == 0)
+                {
+                    beginMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                }
+                await KenoBet(false);
+                TimerFunc(beginMs);
+                if (clear)
+                {
+                    await Task.Delay(40);
+                    if (StratergyArray.Count > 0)
+                    {
+                        stratSelector.Clear(StratergyArray);
+                    }
+                }
+                
+            }
+        }
+
+        public void TimerFunc(long begin)
+        {
+            decimal diff = (decimal)((DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) - begin);
+            decimal seconds = Math.Floor((diff / 1000) % 60);
+            decimal minutes = Math.Floor((diff / (1000 * 60)) % 60);
+            decimal hours = Math.Floor((diff / (1000 * 60 * 60)));
+
+            elapsedTimeLabel.Text = String.Format("{0} : {1} : {2}", hours, minutes, seconds);
+        }
+
+        public void bSta()
+        {
+            running = false;
+            button1.Enabled = true;
+            autoPickBtn.Enabled = true;
+            clearTable.Enabled = true;
+            riskSelect.Enabled = true;
+            stratSelector.selectAllowed = true;
+            currencySelect.Enabled = true;
+            //textBox1.Enabled = true;
+            StratergyArray.Clear();
+            button2.Text = "Start Lua";
+        }
+
+        public void Log(Data response)
+        {
+            List<int> selected = response.data.kenoBet.state.selectedNumbers.Select(n => n + 1).ToList();
+            List<int> result = response.data.kenoBet.state.drawnNumbers.Select(n => n + 1).ToList();
+
+
+            var matchList = result.Intersect(selected).ToList();
+
+            //var matchList = result.Intersect(selected).OrderBy(p => p).ToList();
+            string[] row = { response.data.kenoBet.id, string.Format("({1}x) {0}", string.Join(",", matchList), matchList.Count), string.Join(",", selected), string.Join(",", result), riskSelected, string.Format("{0} {1}", amount.ToString("0.00000000"), currencySelected), response.data.kenoBet.payoutMultiplier.ToString("0.00") + "x", response.data.kenoBet.payout.ToString("0.00000000") };
+            var log = new ListViewItem(row);
+            //betitem.Font = new Font("Consolas", 10f);
+            listView1.Items.Insert(0, log);
+            if (listView1.Items.Count > 50)
+            {
+                listView1.Items[listView1.Items.Count - 1].Remove();
+            }
+
+
+        }
+
+        private async Task Authorize()
+		{
+			try
+			{
+				var json = await GraphQL(
+					"UserBalances",
+					"query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+				);
+				ActiveData response = JsonConvert.DeserializeObject<ActiveData>(json);
+				if (response.errors != null)
+				{
+					LiveBalLabel.Text = "Live Balance";
+					LiveBalLabel.ForeColor = SystemColors.ControlDarkDark;
+					StatusLogIn.Text = "Disconnected";
+				}
+				else
+				{
+					if (response.data != null)
+					{
+						StatusLogIn.Text = String.Format("({0}) Connected ", "");
+						textBox1.Enabled = false;
+
+						// Save current selection before clearing
+						string currentSelected = currencyList.Count > 0 ? currencyList[currencyIndex] 
+							: (!string.IsNullOrEmpty(currencySelected) ? currencySelected : Properties.Settings.Default.currency);
+
+						currencySelect.Items.Clear();
+						currencyList.Clear();
+						
+						for (var i = 0; i < response.data.user.balances.Count; i++)
+						{
+							string currencyName = response.data.user.balances[i].available.currency;
+							currencyList.Add(currencyName);
+							currencySelect.Items.Add(currencyName);
+							
+							if (currencyName == currencySelected.ToLower())
+							{
+								LiveBalLabel.ForeColor = Color.Black;
+								LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
+								currentBal = response.data.user.balances[i].available.amount;
+								balanceLabel.Text = currentBal.ToString("0.00000000");
+							}
+						}
+						
+						// Restore previously selected currency
+						int savedIndex = currencyList.FindIndex(c => c.Equals(currentSelected, StringComparison.OrdinalIgnoreCase));
+						currencyIndex = savedIndex >= 0 ? savedIndex : 0;
+						
+						if (currencySelect.Items.Count > currencyIndex && currencyIndex >= 0)
+						{
+							currencySelect.SelectedIndex = currencyIndex;
+							currencySelected = currencyList[currencyIndex];
+						}
+						else if (currencySelect.Items.Count > 0)
+						{
+							currencySelect.SelectedIndex = 0;
+							currencySelected = currencyList[0];
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				//luaPrint(ex.Message);
+			}
+}
+
+        private async Task ResetSeeds()
+        {
+            try
+            {
+                var json = await GraphQL(
+                    "RotateSeedPair",
+                    "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed { id seed __typename }\n        activeServerSeed { id nonce seedHash nextSeedHash __typename }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+                    new BetClass { seed = RandomString(10) }
+                );
+                Data response = JsonConvert.DeserializeObject<Data>(json);
+                if (response.errors != null)
+                {
+                    luaPrint(response.errors[0].message);
+                }
+                else
+                {
+                    if (response.data != null)
+                    {
+                        luaPrint("Seed was reset.");
+
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
+            }
+        }
+        private async Task VaultSend(decimal sentamount)
+        {
+            try
+            {
+                var json = await GraphQL(
+                    "CreateVaultDeposit",
+                    "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id amount currency\n    user { id balances { available { amount currency __typename } vault { amount currency __typename } __typename } __typename }\n    __typename\n  }\n}\n",
+                    new BetClass { currency = currencySelected.ToLower(), amount = sentamount }
+                );
+                Data response = JsonConvert.DeserializeObject<Data>(json);
+                if (response.errors != null)
+                {
+                    luaPrint(response.errors[0].message);
+                }
+                else
+                {
+                    if (response.data != null)
+                    {
+                        luaPrint(string.Format("Deposited to vault: {0} {1}", sentamount.ToString("0.00000000"), currencySelected));
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
+            }
+        }
+
+        public async Task CheckBalance(bool isCurrency)
+        {
+            try
+            {
+                var json = await GraphQL(
+                    "UserBalances",
+                    "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                );
+                BalancesData response = JsonConvert.DeserializeObject<BalancesData>(json);
+
+
+                if (response.errors != null)
+                {
+                    LiveBalLabel.Text = "Live Balance";
+                    LiveBalLabel.ForeColor = SystemColors.ControlDarkDark;
+                }
+                else
+                {
+                    if (response.data != null)
+                    {
+                        for (var i = 0; i < response.data.user.balances.Count; i++)
+                        {
+                            if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
+                            {
+                                LiveBalLabel.ForeColor = Color.Black;
+                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
+                                currentBal = response.data.user.balances[i].available.amount;
+                                balanceLabel.Text = currentBal.ToString("0.00000000");
+                            }
+
+                            if (isCurrency) { 
+                               // currencySelect.Items.Add(response.data.user.balances[i].available.currency);
+                            }
+                            
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
+            }
+
+        }
+        async Task KenoBet(bool showRes)
+        {
+            try
+            {
+                if (running)
+                {
+                    var json = await GraphQL(
+                        "KenoBet",
+                        "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state { ...CasinoGameKeno }\n  }\n}\nfragment CasinoBet on CasinoBet {\n  id active payoutMultiplier amountMultiplier amount payout updatedAt currency game\n  user { id name }\n}\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers selectedNumbers risk\n}\n",
+                        new BetClass
+                        {
+                            currency = currencySelected,
+                            amount = amount,
+                            risk = riskSelected.ToLower(),
+                            numbers = StratergyArray,
+                            identifier = RandomString(21)
+                        }
+                    );
+                    button2.Enabled = true;
+                    Data response = JsonConvert.DeserializeObject<Data>(json);
+
+                    if (response.errors != null)
+                    {
+                        luaPrint(String.Format("{0}:{1}", response.errors[0].errorType, response.errors[0].message));
+
+                        if (running == true)
+                        {
+                            await Task.Delay(2000);
+                        }
+                        else
+                        {
+                            running = false;
+                        }
+                    }
+                    else
+                    {
+                        currentWager += response.data.kenoBet.amount;
+                        if (response.data.kenoBet.payoutMultiplier >= 1)
+                        {
+                            losestreak = 0;
+                            winstreak++;
+                            isWin = true;
+                            wins++;
+                        }
+                        else
+                        {
+                            losestreak++;
+                            winstreak = 0;
+                            isWin = false;
+                            losses++;
+                            
+                        }
+
+                        Log(response);
+                        await CheckBalance(false);
+                        
+                        currentProfit += response.data.kenoBet.payout - response.data.kenoBet.amount;
+                        profitLabel.Text = currentProfit.ToString("0.00000000");
+                        var matchList = response.data.kenoBet.state.drawnNumbers.Intersect(response.data.kenoBet.state.selectedNumbers);
+                        last.hits = matchList.Count();
+                        last.multiplier = response.data.kenoBet.payoutMultiplier;
+                        riskLabel.Text = string.Format("Risk: {0}", riskSelected);
+
+                        highestStreak.Add(winstreak);
+                        highestStreak = new List<int> { highestStreak.Max() };
+                        lowestStreak.Add(-losestreak);
+                        lowestStreak = new List<int> { lowestStreak.Min() };
+
+                        if (currentProfit < 0)
+                        {
+                            lowestProfit.Add(currentProfit);
+                            lowestProfit = new List<decimal> { lowestProfit.Min() };
+                        }
+                        else
+                        {
+                            highestProfit.Add(currentProfit);
+                            highestProfit = new List<decimal> { highestProfit.Max() };
+                        }
+
+                        highestBet.Add(amount);
+                        highestBet = new List<decimal> { highestBet.Max() };
+
+                        SetStatistics();
+
+
+                        counter++;
+                        xList.Add(counter);
+                        yList.Add((double)currentProfit);
+
+
+
+                        data.Add(new ObservablePoint
+                        {
+                            X = xList[xList.Count - 1],
+                            Y = yList[yList.Count - 1]
+                        });
+
+
+                        if (data.Count > 30)
+                        {
+                            data.RemoveAt(0);
+                            xList.RemoveAt(0);
+                            yList.RemoveAt(0);
+
+                        }
+                        if (showRes)
+                        {
+
+                            ShowResult(response.data.kenoBet.state.drawnNumbers, response.data.kenoBet.state.selectedNumbers);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                SetLuaVariables(response.data.kenoBet.state.drawnNumbers);
+                                LuaSetSelectedVar();
+                                LuaRuntime.SetLua(lua);
+
+
+                                LuaRuntime.Run("dobet()");
+
+                            }
+                            catch (Exception ex)
+                            {
+                                luaPrint("Lua ERROR!!");
+                                luaPrint(ex.Message);
+                            }
+                            GetLuaVariables();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                //luaPrint(ex.Message);
+            }
+        }
+
+        private void SetStatistics()
+        {
+            balanceLabel.Text = currentBal.ToString("0.00000000");
+            profitLabel.Text = currentProfit.ToString("0.00000000");
+            wagerLabel.Text = currentWager.ToString("0.00000000");
+            wincountLabel.Text = wins.ToString();
+            losecountLabel.Text = losses.ToString();
+            totalbetsLabel.Text = (wins + losses).ToString();
+            currentStreakLabel.Text = (winstreak > 0) ? winstreak.ToString() : (-losestreak).ToString() ;
+            lowestProfitLabel.Text = lowestProfit.Min().ToString("0.00000000");
+            highestProfitLabel.Text = highestProfit.Max().ToString("0.00000000");
+            highestBetLabel.Text = highestBet.Max().ToString("0.00000000");
+            highestStreakLabel.Text = highestStreak.Max().ToString();
+            lowestStreakLabel.Text = lowestStreak.Min().ToString();
+
+        }
+
+        private void CmdBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                CmdBtn_Click(this, new EventArgs());
+            }
+        }
+
+        private void listView1_ItemChecked(object sender, ItemCheckedEventArgs e)
+        {
+            //
+            ListViewItem item = e.Item as ListViewItem;
+            if (e.Item.Checked == true)
+            {
+                //MessageBox.Show(e.Item.Text);
+                Process.Start(new ProcessStartInfo(string.Format("https://{1}/casino/home?betId={0}&modal=bet", e.Item.Text, StakeSite)) { UseShellExecute = true });
+            }
+        }
+        void ShowResult(List<int> result, List<int> selected)
+        {
+
+            for (int i = 0; i < selected.Count; i++)
+            {
+                stratSelector.SetValue(selected[i], 1);
+            }
+            var matchList = result.Intersect(selected);
+            foreach (var c in matchList)
+            {
+                stratSelector.SetValue(c, 3);
+            }
+            var nonMatch = result.Except(matchList);
+            foreach (var c in nonMatch)
+            {
+                stratSelector.SetValue(c, 2);
+            }
+
+        }
+
+        private void clearTable_Click(object sender, EventArgs e)
+        {
+            if (running == false)
+            {
+                button1.Enabled = false;
+                //button2.Enabled = false;
+                stratSelector.selectAllowed = true;
+                StratergyArray.Clear();
+                listView2.Clear();
+                stratSelector.Reset();
+            }
+        }
+
+        public void AppendMultipliers(int[] squareData)
+        {
+            if (squareData.Count(x => x == 1) > 0)
+            {
+                listView2.Clear();
+                if (riskSelected.Contains("low"))
+                {
+                    riskLow riskselect = new riskLow();
+                    string[] tilesRange = Enumerable.Range(0, squareData.Count(x => x == 1) + 1).ToArray().Select(x => x.ToString() + "x").ToArray();
+                    var tileCount = new ListViewItem(tilesRange);
+                    foreach (double s in riskselect.Tile[squareData.Count(x => x == 1) - 1])
+                    {
+                        listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
+                    }
+                    listView2.Items.Add(tileCount);
+                }
+                if (riskSelected.Contains("classic"))
+                {
+                    riskClassic riskselect = new riskClassic();
+                    string[] tilesRange = Enumerable.Range(0, squareData.Count(x => x == 1) + 1).ToArray().Select(x => x.ToString() + "x").ToArray();
+                    var tileCount = new ListViewItem(tilesRange);
+                    foreach (double s in riskselect.Tile[squareData.Count(x => x == 1) - 1])
+                    {
+                        listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
+                    }
+                    listView2.Items.Add(tileCount);
+                }
+                if (riskSelected.Contains("medium"))
+                {
+                    riskMedium riskselect = new riskMedium();
+                    string[] tilesRange = Enumerable.Range(0, squareData.Count(x => x == 1) + 1).ToArray().Select(x => x.ToString() + "x").ToArray();
+                    var tileCount = new ListViewItem(tilesRange);
+                    foreach (double s in riskselect.Tile[squareData.Count(x => x == 1) - 1])
+                    {
+                        listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
+                    }
+                    listView2.Items.Add(tileCount);
+                }
+                if (riskSelected.Contains("high"))
+                {
+                    riskHigh riskselect = new riskHigh();
+                    string[] tilesRange = Enumerable.Range(0, squareData.Count(x => x == 1) + 1).ToArray().Select(x => x.ToString() + "x").ToArray();
+                    var tileCount = new ListViewItem(tilesRange);
+                    foreach (double s in riskselect.Tile[squareData.Count(x => x == 1) - 1])
+                    {
+                        listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
+                    }
+                    listView2.Items.Add(tileCount);
+                }
+            }
+            else
+            {
+                button1.Enabled = false;
+                listView2.Clear();
+            }
+
+        }
+
+        private async void autoPickBtn_Click(object sender, EventArgs e)
+        {
+            if (running == false)
+            {
+                button1.Enabled = false;
+                stratSelector.selectAllowed = true;
+                StratergyArray = new List<int>();
+
+                int[] tilesRange = Enumerable.Range(0, 40).ToArray();
+                tilesRange = Shuffle(tilesRange).ToList().Take(10).ToArray();
+                stratSelector.Reset();
+                foreach (int tile in tilesRange)
+                {
+                    await Task.Delay(50);
+                    stratSelector.SetValue(tile, 1);
+                    AppendMultipliers(stratSelector.squareData);
+                }
+                button1.Enabled = true;
+                button2.Enabled = true;
+            }
+        }
+        public string RandomString(int length)
+        {
+            Random random = new Random();
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+        public static int[] Shuffle(int[] arr)
+        {
+            Random rand = new Random();
+            for (int i = arr.Length - 1; i >= 1; i--)
+            {
+                int j = rand.Next(i + 1);
+                int tmp = arr[j];
+                arr[j] = arr[i];
+                arr[i] = tmp;
+            }
+            return arr;
+        }
+
+        private void riskSelect_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            riskSelected = riskSelect.Text.ToLower();
+            riskLabel.Text = string.Format("Risk: {0}", riskSelect.Text);
+            AppendMultipliers(stratSelector.squareData);
+        }
+
+        private async void currencySelect_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (currencySelect.SelectedIndex >= 0)
+			{
+				currencyIndex = currencySelect.SelectedIndex;
+				currencySelected = currencySelect.Text.ToLower();
+				
+				// Save to settings
+				Properties.Settings.Default.currency = currencySelected;
+				Properties.Settings.Default.currencyIndex = currencyIndex;
+				Properties.Settings.Default.Save();
+				
+				await CheckBalance(false);
+				
+				LiveBalLabel.Text = String.Format("{0} | {1}", currencySelect.Text, currentBal.ToString("0.00000000"));
+				balanceLabel.Text = currentBal.ToString("0.00000000");
+			}
+		}
+
+        private void BetCost_ValueChanged(object sender, EventArgs e)
+        {
+            //amount = BetCost.Value;
+        }
+
+        private async void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            token = textBox1.Text;
+            Properties.Settings.Default.token = token;
+            
+        }
+
+        private void LiveBalLabel_TextChanged(object sender, EventArgs e)
+        {
+            Size size = TextRenderer.MeasureText(LiveBalLabel.Text, LiveBalLabel.Font);
+            LiveBalLabel.Width = size.Width;
+            LiveBalLabel.Height = size.Height;
+        }
+
+        private void siteStake_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+           
+        }
+
+        private void CmdBtn_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (CmdBox.Text.Length > 0)
+                {
+                    LuaRuntime.Run(CmdBox.Text);
+                    //CmdBox.Text = String.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                luaPrint("Lua ERROR!!");
+                luaPrint(ex.Message);
+            }
+        }
+
+        private void consoleLog_TextChanged_1(object sender, EventArgs e)
+        {
+            if (consoleLog.Lines.Length > 1000)
+            {
+                List<string> lines = consoleLog.Lines.ToList();
+                lines.RemoveAt(0);
+                consoleLog.Lines = lines.ToArray();
+            }
+
+            consoleLog.SelectionStart = consoleLog.Text.Length;
+            consoleLog.ScrollToCaret();
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+
+            currentProfit = 0;
+            currentWager = 0;
+            wins = 0;
+            losses = 0;
+            winstreak = 0;
+            losestreak = 0;
+            lowestStreak = new List<int> { 0 };
+            highestStreak = new List<int> { 0 };
+            highestProfit = new List<decimal> { 0 };
+            lowestProfit = new List<decimal> { 0 };
+            highestBet = new List<decimal> { 0 };
+            beginMs = 0;
+            elapsedTimeLabel.Text = "0 : 0 : 0";
+            SetStatistics();
+        }
+
+        private void ResetChartClicked_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            counter = 0;
+            yList.Clear();
+            xList.Clear();
+            xList.Add(0);
+            yList.Add(0);
+            data.Clear();
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            ClearanceCookie = textBox2.Text;
+            Properties.Settings.Default.cookie = ClearanceCookie;
+            UpdateCookieStatusLabel();
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            UserAgent = textBox3.Text;
+            Properties.Settings.Default.agent = UserAgent;
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            Authorize();
+        }
+
+        private void tabPage3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.textCode = richTextBox1.Text;
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+            StakeSite = textBox4.Text.ToLower();
+            Properties.Settings.Default.site = StakeSite;
+        }
+
+        // ─── Fetch-mode combo ────────────────────────────────────────────────────
+        private void cmbFetchMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            currencySelect.Items.Clear();
+            Properties.Settings.Default.SavedTabIndex = cmbFetchMode.SelectedIndex;
+            Properties.Settings.Default.Save();
+            bool isExtension = cmbFetchMode.SelectedIndex == 1;
+            UpdateCookieStatusLabel();
+
+            if (isExtension)
+            {
+                BrowserFetch.StartServer();
+                BrowserFetch.Connected    += OnWsConnected;
+                BrowserFetch.Disconnected += OnWsDisconnected;
+
+                bool already = BrowserFetch.IsConnected;
+                lblWsIndicator.ForeColor = already ? Color.LimeGreen : Color.Gray;
+                lblWsStatus.ForeColor    = already ? Color.LimeGreen : Color.Gray;
+                lblWsStatus.Text         = already ? "Extension OK" : "Extension OFF";
+
+                // Show WS controls, hide Cookie controls
+                btnGetCookie.Visible    = false;
+                lblCookieStatus.Visible = false;
+                lblWsIndicator.Visible  = true;
+                lblWsStatus.Visible     = true;
+
+                if (already)
+                {
+                    Authorize();
+                }
+            }
+            else
+            {
+                BrowserFetch.Connected    -= OnWsConnected;
+                BrowserFetch.Disconnected -= OnWsDisconnected;
+
+                lblWsIndicator.ForeColor = Color.Gray;
+                lblWsStatus.ForeColor    = Color.Gray;
+                lblWsStatus.Text         = "Extension OFF";
+
+                // Hide WS controls, show Cookie controls
+                lblWsIndicator.Visible  = false;
+                lblWsStatus.Visible     = false;
+                btnGetCookie.Visible    = true;
+                lblCookieStatus.Visible = true;
+            }
+        }
+
+        // ─── Get-Cookie button (Cookie mode) ────────────────────────────────────
+        private void btnGetCookie_Click(object sender, EventArgs e)
+        {
+            using (var loginForm = new WebViewLogin(StakeSite))
+            {
+                if (loginForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    ClearanceCookie = loginForm.CapturedClearance;
+                    UserAgent       = loginForm.CapturedUserAgent;
+
+                    textBox2.Text = ClearanceCookie;
+                    textBox3.Text = UserAgent;
+
+                    Properties.Settings.Default.cookie = ClearanceCookie;
+                    Properties.Settings.Default.agent  = UserAgent;
+                    Properties.Settings.Default.Save();
+
+                    cc = new CookieContainer();
+                    UpdateCookieStatusLabel();
+                }
+            }
+        }
+
+        // ─── WebSocket status callbacks (Extension mode) ─────────────────────────
+        private void OnWsConnected(object sender, EventArgs e)
+        {
+            void Apply()
+            {
+                lblWsIndicator.ForeColor = Color.LimeGreen;
+                lblWsStatus.ForeColor    = Color.LimeGreen;
+                lblWsStatus.Text         = "Extension OK";
+            }
+            if (lblWsIndicator.InvokeRequired)
+                lblWsIndicator.Invoke((MethodInvoker)Apply);
+            else
+                Apply();
+        }
+
+        private void OnWsDisconnected(object sender, EventArgs e)
+        {
+            void Apply()
+            {
+                lblWsIndicator.ForeColor = Color.Gray;
+                lblWsStatus.ForeColor    = Color.Gray;
+                lblWsStatus.Text         = "Extension OFF";
+            }
+            if (lblWsIndicator.InvokeRequired)
+                lblWsIndicator.Invoke((MethodInvoker)Apply);
+            else
+                Apply();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            BrowserFetch.Connected    -= OnWsConnected;
+            BrowserFetch.Disconnected -= OnWsDisconnected;
+            base.OnFormClosing(e);
+        }
+    }
+
+
+
+
+    public class stratGrid : Control
+    {
+        private Rectangle perimeterRect;
+
+        private Rectangle[] squareRects;
+        public int[] squareData { get; set; }
+
+        private Brush idleColor = Brushes.LightGray;
+        private Brush SetecledColor = Brushes.MediumPurple;
+        private Brush WinColor = Brushes.LimeGreen;
+        private Brush UnhitColor = Brushes.MistyRose;
+        private int _squareSpacing;
+
+        public bool selectAllowed = true;
+        public int SquareSpacing
+        {
+            get { return _squareSpacing; }
+            set
+            {
+                _squareSpacing = Math.Abs(value);
+                Invalidate();
+            }
+        }
+
+        public stratGrid()
+        {
+
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
+
+            Size = new Size(100, 100);
+            SquareSpacing = 6;
+
+            Reset();
+
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+
+            base.OnPaint(e);
+
+            e.Graphics.Clear(Parent.BackColor);
+
+            int index = 0;
+
+            int squareWidth = (212 - (SquareSpacing * 6)) / 5;
+            int start = (212 - (squareWidth * 5) - (SquareSpacing * 4)) / 2;
+
+            for (int col = 0; col < 5; col++)
+            {
+                int y = start + (squareWidth + SquareSpacing) * col;
+                for (int row = 0; row < 8; row++)
+                {
+
+                    int x = start + (squareWidth + SquareSpacing) * row;
+                    squareRects[index] = new Rectangle(x, y, squareWidth, squareWidth);
+
+                    if (squareData[index] == 1)
+                    {
+                        e.Graphics.FillRectangle(SetecledColor, squareRects[index]);
+                        e.Graphics.DrawString(" " + (index + 1).ToString(), new Font("Segoe UI", 11), Brushes.Black, squareRects[index]);
+                    }
+                    else if (squareData[index] == 0)
+                    {
+                        e.Graphics.FillRectangle(idleColor, squareRects[index]);
+                        e.Graphics.DrawString(" " + (index + 1).ToString(), new Font("Segoe UI", 11), Brushes.Black, squareRects[index]);
+                    }
+                    else if (squareData[index] == 2)
+                    {
+                        e.Graphics.FillRectangle(UnhitColor, squareRects[index]);
+                        e.Graphics.DrawString(" " + (index + 1).ToString(), new Font("Segoe UI", 11), Brushes.Red, squareRects[index]);
+                    }
+                    else if (squareData[index] == 3)
+                    {
+                        e.Graphics.FillRectangle(WinColor, squareRects[index]);
+                        e.Graphics.DrawString(" " + (index + 1).ToString(), new Font("Segoe UI", 11), Brushes.Black, squareRects[index]);
+                    }
+
+                    index++;
+
+                }
+            }
+
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+
+            base.OnSizeChanged(e);
+
+            if (Width > Height)
+            {
+                Height = Width;
+            }
+            else if (Height > Width)
+            {
+                Width = Height;
+            }
+
+            perimeterRect = new Rectangle(0, 0, Width - 1, Height - 1);
+
+        }
+
+        public void Reset()
+        {
+
+            squareRects = new Rectangle[40];
+            squareData = new int[40];
+
+            for (int i = 0; i < squareData.Length; i++) squareData[i] = 0;
+
+            Invalidate();
+
+        }
+
+        public void Clear(List<int> StratergyArray)
+        {
+
+            squareRects = new Rectangle[40];
+            squareData = new int[40];
+
+            for (int i = 0; i < squareData.Length; i++)
+            {
+                squareData[i] = 0;
+            }
+
+            foreach (var s in StratergyArray)
+            {
+                squareData[s] = 1;
+            }
+
+            Invalidate();
+
+        }
+
+        public void SetValue(int index, int c)
+        {
+            if (c == 1)
+            {
+                if (squareData.Count(x => x == 1) < 10)
+                {
+                    squareData[index] = c;
+                    Invalidate();
+                }
+            }
+            else
+            {
+                squareData[index] = c;
+                Invalidate();
+            }
+
+
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            for (int i = 0; i < squareRects.Length; i++)
+            {
+                if (squareRects[i].Contains(e.Location))
+                {
+                    if (selectAllowed == true)
+                    {
+                        if (squareData[i] == 0)
+                        {
+                            SetValue(i, 1);
+                            Form1.initForm.button1.Enabled = true;
+                            Form1.initForm.button2.Enabled = true;
+                        }
+                        else
+                        {
+                            SetValue(i, 0);
+                        }
+                        Form1.initForm.StratergyArray.Clear();
+                        Form1.initForm.AppendMultipliers(squareData);
+                    }
+                }
+            }
+        }
+    }
+
+    public class riskLow
+    {
+        public List<Array> Tile = new List<Array>
+        {
+            new double[] { 0.7, 1.85 },
+            new double[] { 0, 2, 3.80 },
+            new double[] { 0, 1.10, 1.38, 26 },
+            new double[] { 0, 0, 2.20, 7.90, 90 },
+            new double[] { 0, 0, 1.50, 4.20, 13, 300 },
+            new double[] { 0, 0, 1.10, 2, 6.20, 100, 700 },
+            new double[] { 0, 0, 1.10, 1.60, 3.50, 15, 225, 700 },
+            new double[] { 0, 0, 1.10, 1.50, 2, 5.50, 39, 100, 800 },
+            new double[] { 0, 0, 1.10, 1.30, 1.70, 2.50, 7.50, 50, 250, 1000 },
+            new double[] { 0, 0, 1.10, 1.20, 1.30, 1.80, 3.50, 13, 50, 250, 1000 }
+        };
+
+    }
+    class riskClassic
+    {
+        public List<Array> Tile = new List<Array>
+        {
+            new double[] { 0, 3.96 },
+            new double[] { 0, 1.90, 4.50 },
+            new double[] { 0, 1.00, 3.10, 10.40 },
+            new double[] { 0, 0.80, 1.80, 5.00, 22.5 },
+            new double[] { 0, 0.25, 1.40, 4.10, 16.5, 36 },
+            new double[] { 0, 0, 1.00, 3.68, 7, 16.5, 40 },
+            new double[] { 0, 0, 0.47, 3.00, 4.50, 14, 31, 60 },
+            new double[] { 0, 0, 0, 2.20, 4, 13, 22, 55, 70 },
+            new double[] { 0, 0, 0, 1.55, 3, 8, 15, 44, 60, 85 },
+            new double[] { 0, 0, 0, 1.40, 2.25, 4.5, 8, 17, 50, 80, 100 }
+        };
+    }
+    class riskMedium
+    {
+        public List<Array> Tile = new List<Array>
+        {
+            new double[] { 0.4, 2.75 },
+            new double[] { 0, 1.8, 5.10 },
+            new double[] { 0, 0, 2.8, 50 },
+            new double[] { 0, 0, 1.7, 10, 100 },
+            new double[] { 0, 0, 1.40, 4, 14, 390 },
+            new double[] { 0, 0, 0, 3, 9, 180, 710 },
+            new double[] { 0, 0, 0, 2, 7, 30, 400, 800 },
+            new double[] { 0, 0, 0, 2, 4, 11, 67, 400, 900 },
+            new double[] { 0, 0, 0, 2, 2.5, 5, 15, 100, 500, 1000 },
+            new double[] { 0, 0, 0, 1.60, 2, 4, 7, 26, 100, 500, 1000 }
+        };
+    }
+    class riskHigh
+    {
+        public List<Array> Tile = new List<Array>
+        {
+            new double[] { 0, 3.96 },
+            new double[] { 0, 0, 17.10 },
+            new double[] { 0, 0, 0, 81.5 },
+            new double[] { 0, 0, 0, 10, 259 },
+            new double[] { 0, 0, 0, 4.5, 48, 450 },
+            new double[] { 0, 0, 0, 0, 11, 350, 710 },
+            new double[] { 0, 0, 0, 0, 7, 90, 400, 800 },
+            new double[] { 0, 0, 0, 0, 5, 20, 270, 600, 900 },
+            new double[] { 0, 0, 0, 0, 4, 11, 56, 500, 800, 1000 },
+            new double[] { 0, 0, 0, 0, 3.5, 8, 13, 63, 500, 800, 1000 }
+        };
+    }
+    public static class ListViewExtensions
+    {
+        /// <summary>
+        /// Sets the double buffered property of a list view to the specified value
+        /// </summary>
+        /// <param name="listView">The List view</param>
+        /// <param name="doubleBuffered">Double Buffered or not</param>
+        public static void SetDoubleBuffered(this System.Windows.Forms.ListView listView, bool doubleBuffered = true)
+        {
+            listView
+                .GetType()
+                .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(listView, doubleBuffered, null);
+        }
+    }
+    public class lastbet
+    {
+        public int hits { get; set; }
+        public double multiplier { get; set; }
+    }
+    
+
+}
