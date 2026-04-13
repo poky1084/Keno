@@ -251,7 +251,7 @@ namespace Keno
         private void UpdateCookieStatusLabel()
         {
             bool hasCookie = !string.IsNullOrWhiteSpace(ClearanceCookie);
-            lblCookieStatus.Text      = hasCookie ? "◯ Found" : "◯ Not found";
+            lblCookieStatus.Text      = hasCookie ? "Cookie OK" : "Cookie OFF";
             lblCookieStatus.ForeColor = hasCookie ? Color.Orange : Color.Gray;
             if (hasCookie)
             {
@@ -785,7 +785,7 @@ namespace Keno
                     else
                     {
                         currentWager += response.data.kenoBet.amount;
-                        if (response.data.kenoBet.payoutMultiplier > 0)
+                        if (response.data.kenoBet.payoutMultiplier >= 1)
                         {
                             losestreak = 0;
                             winstreak++;
@@ -1199,6 +1199,7 @@ namespace Keno
         // ─── Fetch-mode combo ────────────────────────────────────────────────────
         private void cmbFetchMode_SelectedIndexChanged(object sender, EventArgs e)
         {
+            currencySelect.Items.Clear();
             Properties.Settings.Default.SavedTabIndex = cmbFetchMode.SelectedIndex;
             Properties.Settings.Default.Save();
             bool isExtension = cmbFetchMode.SelectedIndex == 1;
@@ -1213,7 +1214,7 @@ namespace Keno
                 bool already = BrowserFetch.IsConnected;
                 lblWsIndicator.ForeColor = already ? Color.LimeGreen : Color.Gray;
                 lblWsStatus.ForeColor    = already ? Color.LimeGreen : Color.Gray;
-                lblWsStatus.Text         = already ? "Connected" : "Not connected";
+                lblWsStatus.Text         = already ? "Extension OK" : "Extension OFF";
 
                 // Show WS controls, hide Cookie controls
                 btnGetCookie.Visible    = false;
@@ -1233,7 +1234,7 @@ namespace Keno
 
                 lblWsIndicator.ForeColor = Color.Gray;
                 lblWsStatus.ForeColor    = Color.Gray;
-                lblWsStatus.Text         = "Not connected";
+                lblWsStatus.Text         = "Extension OFF";
 
                 // Hide WS controls, show Cookie controls
                 lblWsIndicator.Visible  = false;
@@ -1273,7 +1274,7 @@ namespace Keno
             {
                 lblWsIndicator.ForeColor = Color.LimeGreen;
                 lblWsStatus.ForeColor    = Color.LimeGreen;
-                lblWsStatus.Text         = "Connected";
+                lblWsStatus.Text         = "Extension OK";
             }
             if (lblWsIndicator.InvokeRequired)
                 lblWsIndicator.Invoke((MethodInvoker)Apply);
@@ -1287,7 +1288,7 @@ namespace Keno
             {
                 lblWsIndicator.ForeColor = Color.Gray;
                 lblWsStatus.ForeColor    = Color.Gray;
-                lblWsStatus.Text         = "Not connected";
+                lblWsStatus.Text         = "Extension OFF";
             }
             if (lblWsIndicator.InvokeRequired)
                 lblWsIndicator.Invoke((MethodInvoker)Apply);
