@@ -23,8 +23,11 @@ function dobet()
     end
 end</Value>
     </Setting>
+    <Setting Name="SavedTabIndex" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
     <Setting Name="site" Type="System.String" Scope="User">
-      <Value Profile="(Default)">stake.bet</Value>
+      <Value Profile="(Default)">stake.com</Value>
     </Setting>
   </Settings>
 </SettingsFile>

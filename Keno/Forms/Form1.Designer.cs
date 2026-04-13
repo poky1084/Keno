@@ -1,4 +1,4 @@
-﻿namespace Keno
+namespace Keno
 {
     partial class Form1
     {
@@ -45,12 +45,13 @@
             this.StatusLogIn = new System.Windows.Forms.ToolStripStatusLabel();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
-            this.btnWebViewLogin = new System.Windows.Forms.Button();
+            this.btnGetCookie = new System.Windows.Forms.Button();
+            this.lblWsIndicator = new System.Windows.Forms.Label();
+            this.lblWsStatus = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.textBox4 = new System.Windows.Forms.TextBox();
             this.button3 = new System.Windows.Forms.Button();
-            this.label7 = new System.Windows.Forms.Label();
-            this.label6 = new System.Windows.Forms.Label();
+            this.cmbFetchMode = new System.Windows.Forms.ComboBox();
             this.textBox3 = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
@@ -105,6 +106,7 @@
             this.autoPickBtn = new System.Windows.Forms.Button();
             this.LiveBalLabel = new System.Windows.Forms.TextBox();
             this.riskLabel = new System.Windows.Forms.Label();
+            this.lblCookieStatus = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.tabControl1.SuspendLayout();
@@ -264,12 +266,14 @@
             // 
             // tabPage1
             // 
-            this.tabPage1.Controls.Add(this.btnWebViewLogin);
+            this.tabPage1.Controls.Add(this.lblCookieStatus);
+            this.tabPage1.Controls.Add(this.btnGetCookie);
+            this.tabPage1.Controls.Add(this.lblWsIndicator);
+            this.tabPage1.Controls.Add(this.lblWsStatus);
             this.tabPage1.Controls.Add(this.label9);
             this.tabPage1.Controls.Add(this.textBox4);
             this.tabPage1.Controls.Add(this.button3);
-            this.tabPage1.Controls.Add(this.label7);
-            this.tabPage1.Controls.Add(this.label6);
+            this.tabPage1.Controls.Add(this.cmbFetchMode);
             this.tabPage1.Controls.Add(this.textBox3);
             this.tabPage1.Controls.Add(this.textBox2);
             this.tabPage1.Controls.Add(this.groupBox4);
@@ -288,16 +292,37 @@
             this.tabPage1.Text = "Main";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
-            // btnWebViewLogin
+            // btnGetCookie
             // 
-            this.btnWebViewLogin.Location = new System.Drawing.Point(171, 62);
-            this.btnWebViewLogin.Margin = new System.Windows.Forms.Padding(4);
-            this.btnWebViewLogin.Name = "btnWebViewLogin";
-            this.btnWebViewLogin.Size = new System.Drawing.Size(94, 23);
-            this.btnWebViewLogin.TabIndex = 20;
-            this.btnWebViewLogin.Text = "Cookie Get";
-            this.btnWebViewLogin.UseVisualStyleBackColor = true;
-            this.btnWebViewLogin.Click += new System.EventHandler(this.btnWebViewLogin_Click_1);
+            this.btnGetCookie.Location = new System.Drawing.Point(349, 1);
+            this.btnGetCookie.Name = "btnGetCookie";
+            this.btnGetCookie.Size = new System.Drawing.Size(107, 27);
+            this.btnGetCookie.TabIndex = 53;
+            this.btnGetCookie.Text = "Get Cookie";
+            this.btnGetCookie.UseVisualStyleBackColor = true;
+            this.btnGetCookie.Click += new System.EventHandler(this.btnGetCookie_Click);
+            // 
+            // lblWsIndicator
+            // 
+            this.lblWsIndicator.AutoSize = true;
+            this.lblWsIndicator.ForeColor = System.Drawing.Color.Gray;
+            this.lblWsIndicator.Location = new System.Drawing.Point(346, 7);
+            this.lblWsIndicator.Name = "lblWsIndicator";
+            this.lblWsIndicator.Size = new System.Drawing.Size(15, 16);
+            this.lblWsIndicator.TabIndex = 51;
+            this.lblWsIndicator.Text = "⬤";
+            this.lblWsIndicator.Visible = false;
+            // 
+            // lblWsStatus
+            // 
+            this.lblWsStatus.AutoSize = true;
+            this.lblWsStatus.ForeColor = System.Drawing.Color.Gray;
+            this.lblWsStatus.Location = new System.Drawing.Point(362, 7);
+            this.lblWsStatus.Name = "lblWsStatus";
+            this.lblWsStatus.Size = new System.Drawing.Size(94, 16);
+            this.lblWsStatus.TabIndex = 52;
+            this.lblWsStatus.Text = "Not connected";
+            this.lblWsStatus.Visible = false;
             // 
             // label9
             // 
@@ -316,7 +341,7 @@
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(144, 22);
             this.textBox4.TabIndex = 18;
-            this.textBox4.Text = "stake.bet";
+            this.textBox4.Text = "stake.com";
             this.textBox4.TextChanged += new System.EventHandler(this.textBox4_TextChanged);
             // 
             // button3
@@ -330,42 +355,36 @@
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
-            // label7
+            // cmbFetchMode
             // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(422, 8);
-            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(45, 16);
-            this.label7.TabIndex = 17;
-            this.label7.Text = "Agent:";
-            // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(215, 8);
-            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(53, 16);
-            this.label6.TabIndex = 16;
-            this.label6.Text = "Cookie:";
+            this.cmbFetchMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbFetchMode.Items.AddRange(new object[] {
+            "Use Cookie",
+            "Use Extension"});
+            this.cmbFetchMode.Location = new System.Drawing.Point(221, 3);
+            this.cmbFetchMode.Name = "cmbFetchMode";
+            this.cmbFetchMode.Size = new System.Drawing.Size(122, 24);
+            this.cmbFetchMode.TabIndex = 50;
+            this.cmbFetchMode.SelectedIndexChanged += new System.EventHandler(this.cmbFetchMode_SelectedIndexChanged);
             // 
             // textBox3
             // 
-            this.textBox3.Location = new System.Drawing.Point(476, 5);
+            this.textBox3.Location = new System.Drawing.Point(255, 7);
             this.textBox3.Margin = new System.Windows.Forms.Padding(4);
             this.textBox3.Name = "textBox3";
-            this.textBox3.Size = new System.Drawing.Size(122, 22);
+            this.textBox3.Size = new System.Drawing.Size(24, 22);
             this.textBox3.TabIndex = 15;
+            this.textBox3.Visible = false;
             this.textBox3.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(271, 5);
+            this.textBox2.Location = new System.Drawing.Point(221, 5);
             this.textBox2.Margin = new System.Windows.Forms.Padding(4);
             this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(144, 22);
+            this.textBox2.Size = new System.Drawing.Size(26, 22);
             this.textBox2.TabIndex = 14;
+            this.textBox2.Visible = false;
             this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
             // 
             // groupBox4
@@ -734,7 +753,7 @@
             0,
             0,
             393216});
-            this.BetCost.Location = new System.Drawing.Point(365, 62);
+            this.BetCost.Location = new System.Drawing.Point(379, 62);
             this.BetCost.Margin = new System.Windows.Forms.Padding(4);
             this.BetCost.Maximum = new decimal(new int[] {
             1410065408,
@@ -742,19 +761,19 @@
             0,
             0});
             this.BetCost.Name = "BetCost";
-            this.BetCost.Size = new System.Drawing.Size(228, 22);
+            this.BetCost.Size = new System.Drawing.Size(214, 22);
             this.BetCost.TabIndex = 0;
             this.BetCost.ValueChanged += new System.EventHandler(this.BetCost_ValueChanged);
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(275, 66);
+            this.label2.Location = new System.Drawing.Point(346, 65);
             this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(76, 16);
+            this.label2.Size = new System.Drawing.Size(30, 16);
             this.label2.TabIndex = 10;
-            this.label2.Text = "manual bet:";
+            this.label2.Text = "Bet:";
             // 
             // label1
             // 
@@ -1015,6 +1034,16 @@
             this.riskLabel.TabIndex = 10;
             this.riskLabel.Text = "Risk:";
             // 
+            // lblCookieStatus
+            // 
+            this.lblCookieStatus.AutoSize = true;
+            this.lblCookieStatus.ForeColor = System.Drawing.Color.Gray;
+            this.lblCookieStatus.Location = new System.Drawing.Point(462, 8);
+            this.lblCookieStatus.Name = "lblCookieStatus";
+            this.lblCookieStatus.Size = new System.Drawing.Size(77, 16);
+            this.lblCookieStatus.TabIndex = 54;
+            this.lblCookieStatus.Text = "◯ Not found";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -1127,14 +1156,15 @@
         private System.Windows.Forms.Label wagerLabel;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.LinkLabel ResetChartClicked;
-        private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.Label label6;
         private System.Windows.Forms.TextBox textBox3;
         private System.Windows.Forms.TextBox textBox2;
         public System.Windows.Forms.Button button3;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox textBox4;
-        public System.Windows.Forms.Button btnWebViewLogin;
+        private System.Windows.Forms.ComboBox cmbFetchMode;
+        private System.Windows.Forms.Button btnGetCookie;
+        private System.Windows.Forms.Label lblCookieStatus;
+        private System.Windows.Forms.Label lblWsIndicator;
+        private System.Windows.Forms.Label lblWsStatus;
     }
 }
-

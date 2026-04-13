@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -187,7 +187,80 @@ namespace Keno
 
             richTextBox1.TextChanged += this.richTextBox1_TextChanged;
             richTextBox1.Text = Properties.Settings.Default.textCode;
+
+            BrowserFetch.StartServer();
         }
+
+        // ─── Shared GraphQL helper — branches on cmbFetchMode ────────────────────
+        private async Task<string> GraphQL(string operationName, string query,
+                                            BetClass variables = null)
+        {
+            var url = "https://" + StakeSite + "/_api/graphql";
+            bool isExtension = cmbFetchMode.SelectedIndex == 1;
+
+            if (isExtension)
+            {
+                var body = new BetSend
+                {
+                    operationName = operationName,
+                    query = query,
+                    variables = variables
+                };
+
+                var options = new
+                {
+                    method = "POST",
+                    headers = new Dictionary<string, string>
+                    {
+                        { "Content-Type", "application/json" },
+                        { "x-access-token", token }
+                    },
+                    body = body
+                };
+
+                return await BrowserFetch.FetchAsync(url, options);
+            }
+            else
+            {
+                // Cookie mode — use RestSharp with cf_clearance cookie.
+                var client = new RestClient(url);
+                client.CookieContainer = cc;
+                client.UserAgent = UserAgent;
+                client.CookieContainer.Add(
+                    new System.Net.Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
+
+                var payload = new BetSend
+                {
+                    operationName = operationName,
+                    query = query,
+                    variables = variables
+                };
+
+                var request = new RestRequest(Method.POST);
+                request.AddHeader("Content-Type", "application/json");
+                request.AddHeader("x-access-token", token);
+                request.AddParameter("application/json",
+                    JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
+
+                var resp = await client.ExecuteAsync(request);
+                return resp.Content;
+            }
+        }
+
+        // ─── Cookie-status helper ─────────────────────────────────────────────────
+        private void UpdateCookieStatusLabel()
+        {
+            bool hasCookie = !string.IsNullOrWhiteSpace(ClearanceCookie);
+            lblCookieStatus.Text      = hasCookie ? "◯ Found" : "◯ Not found";
+            lblCookieStatus.ForeColor = hasCookie ? Color.Orange : Color.Gray;
+            if (hasCookie)
+            {
+                Authorize();
+            }
+
+        }
+
+
         private void Application_ApplicationExit(object sender, EventArgs e)
         {
 
@@ -219,12 +292,7 @@ namespace Keno
                     // Rebuild CookieContainer fresh
                     cc = new CookieContainer();
 
-                    // Verify connection with new cookies
-                    //await Authorize();
-                }
-                else
-                {
-
+                    UpdateCookieStatusLabel();
                 }
             }
 
@@ -246,6 +314,18 @@ namespace Keno
             textBox2.Text = Properties.Settings.Default.cookie;
             textBox4.Text = Properties.Settings.Default.site;
 
+            // Restore saved credentials into fields used by cookie mode
+            ClearanceCookie = Properties.Settings.Default.cookie;
+            UserAgent       = Properties.Settings.Default.agent;
+
+            // Restore fetch-mode selection (triggers cmbFetchMode_SelectedIndexChanged)
+            int savedIndex = Properties.Settings.Default.SavedTabIndex;
+            if (savedIndex >= 0 && savedIndex < cmbFetchMode.Items.Count)
+                cmbFetchMode.SelectedIndex = savedIndex;
+            else
+                cmbFetchMode.SelectedIndex = 0;
+
+            UpdateCookieStatusLabel();
         }
         private void SetLuaVariables(List<int> drawn)
         {
@@ -424,13 +504,6 @@ namespace Keno
                     stratSelector.Clear(StratergyArray);
                 }
                 AppendMultipliers(stratSelector.squareData);
-                //List<int> selectedSquares = new List<int>();
-                //for (int i = 0; i < stratSelector.squareData.Length; i++)
-                //{
-                    //if (stratSelector.squareData[i] == 1)
-                        //selectedSquares.Add(i);
-               // }
-                //StratergyArray = selectedSquares;
                 running = true;
                 button2.Text = "Stop";
                 //button2.Enabled = false;
@@ -518,29 +591,11 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "UserBalances";
-                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                // Will output the HTML contents of the requested page
-                //Debug.WriteLine(restResponse.Content);
-                ActiveData response = JsonConvert.DeserializeObject<ActiveData>(restResponse.Content);
-                //System.Diagnostics.Debug.WriteLine(restResponse.Content);
+                var json = await GraphQL(
+                    "UserBalances",
+                    "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                );
+                ActiveData response = JsonConvert.DeserializeObject<ActiveData>(json);
                 if (response.errors != null)
                 {
                     LiveBalLabel.Text = "Live Balance";
@@ -560,7 +615,7 @@ namespace Keno
                             if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
                             {
                                 LiveBalLabel.ForeColor = Color.Black;
-                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected.ToUpper(), response.data.user.balances[i].available.amount.ToString("0.00000000"));
+                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
                                 currentBal = response.data.user.balances[i].available.amount;
                                 balanceLabel.Text = currentBal.ToString("0.00000000");
 
@@ -575,8 +630,6 @@ namespace Keno
                                 {
                                     if (response.data.user.balances[i].available.currency == curr[s].ToLower())
                                     {
-                                        //currencySelect.Items[s] = string.Format("{0} {1}", curr[s], response.data.user.balances[i].available.amount.ToString("0.00000000"));
-                                        //currencySelect.Items.Add(string.Format("{0} {1}", s, response.data.user.balances[i].available.amount.ToString("0.00000000")));
                                         break;
                                     }
                                 }
@@ -597,33 +650,12 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://"+ StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "RotateSeedPair";
-                payload.variables = new BetClass()
-                {
-                    seed = RandomString(10)
-                };
-                payload.query = "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed {\n          id\n          seed\n          __typename\n        }\n        activeServerSeed {\n          id\n          nonce\n          seedHash\n          nextSeedHash\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                // Will output the HTML contents of the requested page
-                //Debug.WriteLine(restResponse.Content);
-                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
-                //System.Diagnostics.Debug.WriteLine(restResponse.Content);
+                var json = await GraphQL(
+                    "RotateSeedPair",
+                    "mutation RotateSeedPair($seed: String!) {\n  rotateSeedPair(seed: $seed) {\n    clientSeed {\n      user {\n        id\n        activeClientSeed { id seed __typename }\n        activeServerSeed { id nonce seedHash nextSeedHash __typename }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+                    new BetClass { seed = RandomString(10) }
+                );
+                Data response = JsonConvert.DeserializeObject<Data>(json);
                 if (response.errors != null)
                 {
                     luaPrint(response.errors[0].message);
@@ -647,34 +679,12 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "CreateVaultDeposit";
-                payload.variables = new BetClass()
-                {
-                    currency = currencySelected.ToLower(),
-                    amount = sentamount
-                };
-                payload.query = "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id\n    amount\n    currency\n    user {\n      id\n      balances {\n        available {\n          amount\n          currency\n          __typename\n        }\n        vault {\n          amount\n          currency\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-                //request.AddJsonBody(payload);
-                //IRestResponse response = client.Execute(request);
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-                // Will output the HTML contents of the requested page
-                //Debug.WriteLine(restResponse.Content);
-                Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
-                //System.Diagnostics.Debug.WriteLine(restResponse.Content);
+                var json = await GraphQL(
+                    "CreateVaultDeposit",
+                    "mutation CreateVaultDeposit($currency: CurrencyEnum!, $amount: Float!) {\n  createVaultDeposit(currency: $currency, amount: $amount) {\n    id amount currency\n    user { id balances { available { amount currency __typename } vault { amount currency __typename } __typename } __typename }\n    __typename\n  }\n}\n",
+                    new BetClass { currency = currencySelected.ToLower(), amount = sentamount }
+                );
+                Data response = JsonConvert.DeserializeObject<Data>(json);
                 if (response.errors != null)
                 {
                     luaPrint(response.errors[0].message);
@@ -698,57 +708,28 @@ namespace Keno
         {
             try
             {
-                var mainurl = "https://" + StakeSite + "/_api/graphql";
-                var request = new RestRequest(Method.POST);
-                var client = new RestClient(mainurl);
-                client.CookieContainer = cc;
-                client.UserAgent = UserAgent;
-                client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                BetQuery payload = new BetQuery();
-                payload.operationName = "UserBalances";
-                payload.query = "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n";
-
-                request.AddHeader("Content-Type", "application/json");
-                request.AddHeader("x-access-token", token);
-
-                request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-
-
-
-                var restResponse =
-                    await client.ExecuteAsync(request);
-
-
-                //Debug.WriteLine(restResponse.Content);
-                BalancesData response = JsonConvert.DeserializeObject<BalancesData>(restResponse.Content);
+                var json = await GraphQL(
+                    "UserBalances",
+                    "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+                );
+                BalancesData response = JsonConvert.DeserializeObject<BalancesData>(json);
 
 
                 if (response.errors != null)
                 {
                     LiveBalLabel.Text = "Live Balance";
                     LiveBalLabel.ForeColor = SystemColors.ControlDarkDark;
-
-                    ///StatusLogIn.Text = "unauthorized";
                 }
                 else
                 {
                     if (response.data != null)
                     {
-                        if (isCurrency)
-                        {
-                            //currencySelect.Items.Clear();
-                        }
-                        
-                        if (isCurrency)
-                        {
-                            //currencySelect.Items.Clear();
-                        }
                         for (var i = 0; i < response.data.user.balances.Count; i++)
                         {
                             if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
                             {
                                 LiveBalLabel.ForeColor = Color.Black;
-                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected.ToUpper(), response.data.user.balances[i].available.amount.ToString("0.00000000"));
+                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
                                 currentBal = response.data.user.balances[i].available.amount;
                                 balanceLabel.Text = currentBal.ToString("0.00000000");
                             }
@@ -759,7 +740,6 @@ namespace Keno
                             
                         }
                     }
-                    //StatusLogIn.Text = "authorized";
                 }
             }
             catch (Exception ex)
@@ -774,65 +754,36 @@ namespace Keno
             {
                 if (running)
                 {
-                    var mainurl = "https://" + StakeSite + "/_api/graphql";
-                    var request = new RestRequest(Method.POST);
-                    var client = new RestClient(mainurl);
-                    client.CookieContainer = cc;
-                    client.UserAgent = UserAgent;
-                    client.CookieContainer.Add(new Cookie("cf_clearance", ClearanceCookie, "/", StakeSite));
-                    BetQuery payload = new BetQuery();
-                    payload.variables = new BetClass()
-                    {
-                        currency = currencySelected,
-                        amount = amount,
-                        risk = riskSelected.ToLower(),
-                        numbers = StratergyArray,
-                        identifier = RandomString(21)
-
-                    };
-
-                    payload.query = "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state {\n      ...CasinoGameKeno\n    }\n  }\n}\n\nfragment CasinoBet on CasinoBet {\n  id\n  active\n  payoutMultiplier\n  amountMultiplier\n  amount\n  payout\n  updatedAt\n  currency\n  game\n  user {\n    id\n    name\n  }\n}\n\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers\n  selectedNumbers\n  risk\n}\n";
-
-                    request.AddHeader("Content-Type", "application/json");
-                    request.AddHeader("x-access-token", token);
-
-                    request.AddParameter("application/json", JsonConvert.SerializeObject(payload), ParameterType.RequestBody);
-
-
-                    var restResponse =
-                        await client.ExecuteAsync(request);
-
-                    //label4.Text = restResponse.Content;
-
+                    var json = await GraphQL(
+                        "KenoBet",
+                        "mutation KenoBet($amount: Float!, $currency: CurrencyEnum!, $numbers: [Int!]!, $identifier: String!, $risk: CasinoGameKenoRiskEnum) {\n  kenoBet(\n    amount: $amount\n    currency: $currency\n    numbers: $numbers\n    risk: $risk\n    identifier: $identifier\n  ) {\n    ...CasinoBet\n    state { ...CasinoGameKeno }\n  }\n}\nfragment CasinoBet on CasinoBet {\n  id active payoutMultiplier amountMultiplier amount payout updatedAt currency game\n  user { id name }\n}\nfragment CasinoGameKeno on CasinoGameKeno {\n  drawnNumbers selectedNumbers risk\n}\n",
+                        new BetClass
+                        {
+                            currency = currencySelected,
+                            amount = amount,
+                            risk = riskSelected.ToLower(),
+                            numbers = StratergyArray,
+                            identifier = RandomString(21)
+                        }
+                    );
                     button2.Enabled = true;
-                    Data response = JsonConvert.DeserializeObject<Data>(restResponse.Content);
+                    Data response = JsonConvert.DeserializeObject<Data>(json);
 
                     if (response.errors != null)
                     {
-                        //Log();
                         luaPrint(String.Format("{0}:{1}", response.errors[0].errorType, response.errors[0].message));
-
-                        //if(response.errors[0].errorType == "graphQL")
 
                         if (running == true)
                         {
                             await Task.Delay(2000);
-                            //running = false;
-                            //bSta();
-                            //await Task.Delay(2000);
-                            //PrepRequest();
                         }
                         else
                         {
                             running = false;
-                            //BSta(true);
                         }
                     }
                     else
                     {
-                        //clearSquares();
-                        //stratSelector.Reset();
-                        //await Task.Delay(50);
                         currentWager += response.data.kenoBet.amount;
                         if (response.data.kenoBet.payoutMultiplier > 0)
                         {
@@ -1018,8 +969,6 @@ namespace Keno
                         listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
                     }
                     listView2.Items.Add(tileCount);
-                    //listView2.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-
                 }
                 if (riskSelected.Contains("classic"))
                 {
@@ -1031,8 +980,6 @@ namespace Keno
                         listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
                     }
                     listView2.Items.Add(tileCount);
-                    //listView2.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-
                 }
                 if (riskSelected.Contains("medium"))
                 {
@@ -1044,8 +991,6 @@ namespace Keno
                         listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
                     }
                     listView2.Items.Add(tileCount);
-                    //listView2.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-
                 }
                 if (riskSelected.Contains("high"))
                 {
@@ -1057,14 +1002,11 @@ namespace Keno
                         listView2.Columns.Add(s.ToString() + "x", TextRenderer.MeasureText(s.ToString() + "x", new Font("Segoe UI", 9, FontStyle.Regular, GraphicsUnit.Point)).Width + 3, HorizontalAlignment.Center);
                     }
                     listView2.Items.Add(tileCount);
-                    //listView2.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-
                 }
             }
             else
             {
                 button1.Enabled = false;
-                //button2.Enabled = false;
                 listView2.Clear();
             }
 
@@ -1075,7 +1017,6 @@ namespace Keno
             if (running == false)
             {
                 button1.Enabled = false;
-                //button2.Enabled = false;
                 stratSelector.selectAllowed = true;
                 StratergyArray = new List<int>();
 
@@ -1174,7 +1115,6 @@ namespace Keno
             }
             catch (Exception ex)
             {
-                //CmdBox.Text = String.Empty;
                 luaPrint("Lua ERROR!!");
                 luaPrint(ex.Message);
             }
@@ -1226,6 +1166,7 @@ namespace Keno
         {
             ClearanceCookie = textBox2.Text;
             Properties.Settings.Default.cookie = ClearanceCookie;
+            UpdateCookieStatusLabel();
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e)
@@ -1255,7 +1196,111 @@ namespace Keno
             Properties.Settings.Default.site = StakeSite;
         }
 
-      
+        // ─── Fetch-mode combo ────────────────────────────────────────────────────
+        private void cmbFetchMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.SavedTabIndex = cmbFetchMode.SelectedIndex;
+            Properties.Settings.Default.Save();
+            bool isExtension = cmbFetchMode.SelectedIndex == 1;
+            UpdateCookieStatusLabel();
+
+            if (isExtension)
+            {
+                BrowserFetch.StartServer();
+                BrowserFetch.Connected    += OnWsConnected;
+                BrowserFetch.Disconnected += OnWsDisconnected;
+
+                bool already = BrowserFetch.IsConnected;
+                lblWsIndicator.ForeColor = already ? Color.LimeGreen : Color.Gray;
+                lblWsStatus.ForeColor    = already ? Color.LimeGreen : Color.Gray;
+                lblWsStatus.Text         = already ? "Connected" : "Not connected";
+
+                // Show WS controls, hide Cookie controls
+                btnGetCookie.Visible    = false;
+                lblCookieStatus.Visible = false;
+                lblWsIndicator.Visible  = true;
+                lblWsStatus.Visible     = true;
+
+                if (already)
+                {
+                    Authorize();
+                }
+            }
+            else
+            {
+                BrowserFetch.Connected    -= OnWsConnected;
+                BrowserFetch.Disconnected -= OnWsDisconnected;
+
+                lblWsIndicator.ForeColor = Color.Gray;
+                lblWsStatus.ForeColor    = Color.Gray;
+                lblWsStatus.Text         = "Not connected";
+
+                // Hide WS controls, show Cookie controls
+                lblWsIndicator.Visible  = false;
+                lblWsStatus.Visible     = false;
+                btnGetCookie.Visible    = true;
+                lblCookieStatus.Visible = true;
+            }
+        }
+
+        // ─── Get-Cookie button (Cookie mode) ────────────────────────────────────
+        private void btnGetCookie_Click(object sender, EventArgs e)
+        {
+            using (var loginForm = new WebViewLogin(StakeSite))
+            {
+                if (loginForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    ClearanceCookie = loginForm.CapturedClearance;
+                    UserAgent       = loginForm.CapturedUserAgent;
+
+                    textBox2.Text = ClearanceCookie;
+                    textBox3.Text = UserAgent;
+
+                    Properties.Settings.Default.cookie = ClearanceCookie;
+                    Properties.Settings.Default.agent  = UserAgent;
+                    Properties.Settings.Default.Save();
+
+                    cc = new CookieContainer();
+                    UpdateCookieStatusLabel();
+                }
+            }
+        }
+
+        // ─── WebSocket status callbacks (Extension mode) ─────────────────────────
+        private void OnWsConnected(object sender, EventArgs e)
+        {
+            void Apply()
+            {
+                lblWsIndicator.ForeColor = Color.LimeGreen;
+                lblWsStatus.ForeColor    = Color.LimeGreen;
+                lblWsStatus.Text         = "Connected";
+            }
+            if (lblWsIndicator.InvokeRequired)
+                lblWsIndicator.Invoke((MethodInvoker)Apply);
+            else
+                Apply();
+        }
+
+        private void OnWsDisconnected(object sender, EventArgs e)
+        {
+            void Apply()
+            {
+                lblWsIndicator.ForeColor = Color.Gray;
+                lblWsStatus.ForeColor    = Color.Gray;
+                lblWsStatus.Text         = "Not connected";
+            }
+            if (lblWsIndicator.InvokeRequired)
+                lblWsIndicator.Invoke((MethodInvoker)Apply);
+            else
+                Apply();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            BrowserFetch.Connected    -= OnWsConnected;
+            BrowserFetch.Disconnected -= OnWsDisconnected;
+            base.OnFormClosing(e);
+        }
     }
 
 
