@@ -62,7 +62,8 @@ namespace Keno
         public decimal Lastbet = 0;
         long beginMs = 0;
 
-        
+        public List<string> currencyList = new List<string>();
+		public int currencyIndex = 0;
 
         List<decimal> highestProfit = new List<decimal> { 0 };
         List<decimal> lowestProfit = new List<decimal> { 0 };
@@ -310,22 +311,30 @@ namespace Keno
         private void LoadSettings()
         {
             textBox1.Text = Properties.Settings.Default.token;
-            textBox3.Text = Properties.Settings.Default.agent;
-            textBox2.Text = Properties.Settings.Default.cookie;
-            textBox4.Text = Properties.Settings.Default.site;
+			textBox3.Text = Properties.Settings.Default.agent;
+			textBox2.Text = Properties.Settings.Default.cookie;
+			textBox4.Text = Properties.Settings.Default.site;
 
-            // Restore saved credentials into fields used by cookie mode
-            ClearanceCookie = Properties.Settings.Default.cookie;
-            UserAgent       = Properties.Settings.Default.agent;
+			// Restore saved credentials into fields used by cookie mode
+			ClearanceCookie = Properties.Settings.Default.cookie;
+			UserAgent       = Properties.Settings.Default.agent;
+			
+			// Restore saved currency
+			currencySelected = Properties.Settings.Default.currency;
+			if (string.IsNullOrEmpty(currencySelected))
+				currencySelected = "btc";
+			
+			currencyIndex = Properties.Settings.Default.currencyIndex;
+			if (currencyIndex < 0) currencyIndex = 0;
 
-            // Restore fetch-mode selection (triggers cmbFetchMode_SelectedIndexChanged)
-            int savedIndex = Properties.Settings.Default.SavedTabIndex;
-            if (savedIndex >= 0 && savedIndex < cmbFetchMode.Items.Count)
-                cmbFetchMode.SelectedIndex = savedIndex;
-            else
-                cmbFetchMode.SelectedIndex = 0;
+			// Restore fetch-mode selection (triggers cmbFetchMode_SelectedIndexChanged)
+			int savedIndex = Properties.Settings.Default.SavedTabIndex;
+			if (savedIndex >= 0 && savedIndex < cmbFetchMode.Items.Count)
+				cmbFetchMode.SelectedIndex = savedIndex;
+			else
+				cmbFetchMode.SelectedIndex = 0;
 
-            UpdateCookieStatusLabel();
+			UpdateCookieStatusLabel();
         }
         private void SetLuaVariables(List<int> drawn)
         {
@@ -588,63 +597,71 @@ namespace Keno
         }
 
         private async Task Authorize()
-        {
-            try
-            {
-                var json = await GraphQL(
-                    "UserBalances",
-                    "query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
-                );
-                ActiveData response = JsonConvert.DeserializeObject<ActiveData>(json);
-                if (response.errors != null)
-                {
-                    LiveBalLabel.Text = "Live Balance";
-                    LiveBalLabel.ForeColor = SystemColors.ControlDarkDark;
-                    StatusLogIn.Text = "Disconnected";
-                }
-                else
-                {
-                    if (response.data != null)
-                    {
-                        StatusLogIn.Text = String.Format("({0}) Connected ", "");
-                        textBox1.Enabled = false;
+		{
+			try
+			{
+				var json = await GraphQL(
+					"UserBalances",
+					"query UserBalances {\n  user {\n    id\n    balances {\n      available {\n        amount\n        currency\n        __typename\n      }\n      vault {\n        amount\n        currency\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+				);
+				ActiveData response = JsonConvert.DeserializeObject<ActiveData>(json);
+				if (response.errors != null)
+				{
+					LiveBalLabel.Text = "Live Balance";
+					LiveBalLabel.ForeColor = SystemColors.ControlDarkDark;
+					StatusLogIn.Text = "Disconnected";
+				}
+				else
+				{
+					if (response.data != null)
+					{
+						StatusLogIn.Text = String.Format("({0}) Connected ", "");
+						textBox1.Enabled = false;
 
-                        currencySelect.Items.Clear();
-                        for (var i = 0; i < response.data.user.balances.Count; i++)
-                        {
-                            if (response.data.user.balances[i].available.currency == currencySelected.ToLower())
-                            {
-                                LiveBalLabel.ForeColor = Color.Black;
-                                LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
-                                currentBal = response.data.user.balances[i].available.amount;
-                                balanceLabel.Text = currentBal.ToString("0.00000000");
+						// Save current selection before clearing
+						string currentSelected = currencyList.Count > 0 ? currencyList[currencyIndex] 
+							: (!string.IsNullOrEmpty(currencySelected) ? currencySelected : Properties.Settings.Default.currency);
 
-
-                            }
-                            currencySelect.Items.Add(response.data.user.balances[i].available.currency);
-                            
-                            if (true)
-                            {
-                              
-                                for (int s = 0; s < curr.Length; s++)
-                                {
-                                    if (response.data.user.balances[i].available.currency == curr[s].ToLower())
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                    }
-
-                }
-            }
-            catch (Exception ex)
-            {
-                //luaPrint(ex.Message);
-            }
-        }
+						currencySelect.Items.Clear();
+						currencyList.Clear();
+						
+						for (var i = 0; i < response.data.user.balances.Count; i++)
+						{
+							string currencyName = response.data.user.balances[i].available.currency;
+							currencyList.Add(currencyName);
+							currencySelect.Items.Add(currencyName);
+							
+							if (currencyName == currencySelected.ToLower())
+							{
+								LiveBalLabel.ForeColor = Color.Black;
+								LiveBalLabel.Text = String.Format("{0} | {1}", currencySelected, response.data.user.balances[i].available.amount.ToString("0.00000000"));
+								currentBal = response.data.user.balances[i].available.amount;
+								balanceLabel.Text = currentBal.ToString("0.00000000");
+							}
+						}
+						
+						// Restore previously selected currency
+						int savedIndex = currencyList.FindIndex(c => c.Equals(currentSelected, StringComparison.OrdinalIgnoreCase));
+						currencyIndex = savedIndex >= 0 ? savedIndex : 0;
+						
+						if (currencySelect.Items.Count > currencyIndex && currencyIndex >= 0)
+						{
+							currencySelect.SelectedIndex = currencyIndex;
+							currencySelected = currencyList[currencyIndex];
+						}
+						else if (currencySelect.Items.Count > 0)
+						{
+							currencySelect.SelectedIndex = 0;
+							currencySelected = currencyList[0];
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				//luaPrint(ex.Message);
+			}
+}
 
         private async Task ResetSeeds()
         {
@@ -1061,17 +1078,23 @@ namespace Keno
         }
 
         private async void currencySelect_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            currencySelected = currencySelect.Text.ToLower();
-            await CheckBalance(false);
-
-
-            LiveBalLabel.Text = String.Format("{0} | {1}", currencySelect.Text, currentBal.ToString("0.00000000"));
-            balanceLabel.Text = currentBal.ToString("0.00000000");
-
-
-
-        }
+		{
+			if (currencySelect.SelectedIndex >= 0)
+			{
+				currencyIndex = currencySelect.SelectedIndex;
+				currencySelected = currencySelect.Text.ToLower();
+				
+				// Save to settings
+				Properties.Settings.Default.currency = currencySelected;
+				Properties.Settings.Default.currencyIndex = currencyIndex;
+				Properties.Settings.Default.Save();
+				
+				await CheckBalance(false);
+				
+				LiveBalLabel.Text = String.Format("{0} | {1}", currencySelect.Text, currentBal.ToString("0.00000000"));
+				balanceLabel.Text = currentBal.ToString("0.00000000");
+			}
+		}
 
         private void BetCost_ValueChanged(object sender, EventArgs e)
         {

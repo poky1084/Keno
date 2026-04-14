@@ -103,5 +103,29 @@ end")]
                 this["site"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("btc")]
+        public string currency {
+            get {
+                return ((string)(this["currency"]));
+            }
+            set {
+                this["currency"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int currencyIndex {
+            get {
+                return ((int)(this["currencyIndex"]));
+            }
+            set {
+                this["currencyIndex"] = value;
+            }
+        }
     }
 }

@@ -29,5 +29,11 @@ end</Value>
     <Setting Name="site" Type="System.String" Scope="User">
       <Value Profile="(Default)">stake.com</Value>
     </Setting>
+    <Setting Name="currency" Type="System.String" Scope="User">
+      <Value Profile="(Default)">btc</Value>
+    </Setting>
+    <Setting Name="currencyIndex" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
